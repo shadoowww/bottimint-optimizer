@@ -1,126 +1,126 @@
-# Niveles de optimización
+# Optimization levels
 
-> Generado automáticamente desde `bottimint/nucleo.py` con `python scripts/generar_docs.py`. No editar a mano.
+> Automatically generated from `bottimint/nucleo.py` with `python scripts/generar_docs.py`. Do not edit by hand.
 
-Los niveles son **acumulativos**: Profundo incluye todo Básico, y Extremo incluye todo Profundo.
-Antes de aplicar cualquiera se crea un **punto de restauración de Windows** y se verifica; si no se puede crear, **no se modifica nada**.
+The levels are **cumulative**: Deep includes everything in Basic, and Extreme includes everything in Deep.
+Before applying any of them a **Windows restore point** is created and verified; if it cannot be created, **nothing is modified**.
 
-## Básico - Limpieza general
+## Basic - General cleanup
 
-**Ideal para:** Cualquier PC lenta, con poco espacio o que hace tiempo no se limpia.
+**Ideal for:** Any slow PC, low on space, or that hasn't been cleaned in a long time.
 
-**Qué hace**
+**What it does**
 
-- Borra archivos temporales de Windows y del usuario.
-- Vacía cachés de navegadores, miniaturas, informes de error y descargas de Windows Update ya instaladas.
-- Vacía la papelera y la caché DNS.
+- Deletes Windows and user temporary files.
+- Empties browser caches, thumbnails, error reports and already-installed Windows Update downloads.
+- Empties the Recycle Bin and the DNS cache.
 
-**Consecuencias a tener en cuenta**
+**Consequences to keep in mind**
 
-- La primera vez que se abren las webs cargan un poco más lento (se rearma la caché).
-- Lo que está en la papelera se pierde para siempre.
-- No se desactiva ningún servicio ni programa: la PC funciona igual que antes, con más espacio.
+- Websites load a bit slower the first time (the cache is rebuilt).
+- Whatever is in the Recycle Bin is lost forever.
+- No service or program is disabled: the PC works exactly as before, with more free space.
 
-**Reversibilidad:** No hay nada que restaurar: son archivos descartables que Windows vuelve a crear solo.
+**Reversibility:** There is nothing to restore: these are disposable files that Windows recreates by itself.
 
-### Cambios que incorpora este nivel (9)
+### Changes introduced by this level (9)
 
-| Cambio | Grupo | Riesgo | Reversible | Marcado por defecto | Qué hace | Consecuencia |
+| Change | Group | Risk | Reversible | Checked by default | What it does | Consequence |
 |---|---|---|---|---|---|---|
-| **Temporales del usuario**<br>`limp_temp_usuario` | Limpieza | 🟢 bajo | no | sí | Archivos temporales del usuario actual (carpeta TEMP). | Un programa abierto puede perder un borrador temporal no guardado. Cerrar todo antes. |
-| **Temporales de Windows**<br>`limp_temp_windows` | Limpieza | 🟢 bajo | no | sí | Archivos temporales de C:\Windows\Temp. | Ninguna. |
-| **Caché de navegadores**<br>`limp_navegadores` | Limpieza | 🟢 bajo | no | sí | Caché de Chrome, Edge, Brave y Firefox. No toca contraseñas ni historial. | Las webs cargan un poco más lento la primera vez. Cerrar los navegadores antes. |
-| **Caché de Internet / miniaturas**<br>`limp_inetcache` | Limpieza | 🟢 bajo | no | sí | Caché de Internet y miniaturas del Explorador. | Las miniaturas se regeneran al abrir carpetas con imágenes. |
-| **Informes y volcados de error**<br>`limp_errores` | Limpieza | 🟢 bajo | no | sí | Informes y volcados de error de Windows. | Se pierden registros de cuelgues pasados (solo sirven para diagnosticar). |
-| **Caché de Windows Update**<br>`limp_windows_update` | Limpieza | 🟢 bajo | no | sí | Descargas de Windows Update ya instaladas. | Ninguna importante: Windows vuelve a bajar lo que necesite. |
-| **Caché de Optimización de entrega**<br>`limp_delivery_opt` | Limpieza | 🟢 bajo | no | sí | Caché de Optimización de entrega. | Ninguna. |
-| **Vaciar papelera de reciclaje**<br>`limp_papelera` | Limpieza | 🟠 medio | no | sí | Vacía la papelera de reciclaje. | Lo que está en la papelera se pierde definitivamente. Confirmá que no necesitás nada de ahí. |
-| **Vaciar caché DNS**<br>`limp_dns` | Limpieza | 🟢 bajo | no | sí | Vacía la caché DNS. | Ninguna. |
+| **User temporary files**<br>`limp_temp_usuario` | Cleanup | 🟢 low | no | yes | Temporary files of the current user (TEMP folder). | An open program may lose an unsaved temporary draft. Close everything first. |
+| **Windows temporary files**<br>`limp_temp_windows` | Cleanup | 🟢 low | no | yes | Temporary files in C:\Windows\Temp. | None. |
+| **Browser cache**<br>`limp_navegadores` | Cleanup | 🟢 low | no | yes | Chrome, Edge, Brave and Firefox cache. Passwords and history are not touched. | Websites load a bit slower the first time. Close the browsers first. |
+| **Internet cache / thumbnails**<br>`limp_inetcache` | Cleanup | 🟢 low | no | yes | Internet cache and Explorer thumbnails. | Thumbnails are regenerated when you open folders with images. |
+| **Error reports and dumps**<br>`limp_errores` | Cleanup | 🟢 low | no | yes | Windows error reports and dumps. | Records of past crashes are lost (they are only useful for diagnosing). |
+| **Windows Update cache**<br>`limp_windows_update` | Cleanup | 🟢 low | no | yes | Already-installed Windows Update downloads. | Nothing important: Windows downloads again whatever it needs. |
+| **Delivery Optimization cache**<br>`limp_delivery_opt` | Cleanup | 🟢 low | no | yes | Delivery Optimization cache. | None. |
+| **Empty the Recycle Bin**<br>`limp_papelera` | Cleanup | 🟠 medium | no | yes | Empties the Recycle Bin. | Whatever is in the Recycle Bin is permanently lost. Make sure you don't need anything in there. |
+| **Flush DNS cache**<br>`limp_dns` | Cleanup | 🟢 low | no | yes | Flushes the DNS cache. | None. |
 
-## Profundo - Limpieza + eliminar lo que sobra
+## Deep - Cleanup + remove the extras
 
-**Ideal para:** PC con mucho 'software basura' de fábrica, publicidad en el menú Inicio o que tarda en arrancar.
+**Ideal for:** PC with lots of factory 'bloatware', ads in the Start menu, or slow to boot.
 
-**Qué hace**
+**What it does**
 
-- Todo lo del nivel Básico.
-- Desinstala apps preinstaladas innecesarias (Solitario, Noticias, Clima, Clipchamp, Teams personal, juegos de relleno, etc.).
-- Apaga sugerencias, publicidad y recomendaciones del menú Inicio y la pantalla de bloqueo.
-- Desactiva tareas programadas de telemetría de Microsoft.
-- Deshabilita programas de inicio conocidos que no hacen falta (Spotify, Teams, Skype, actualizadores de Adobe/Java...).
-- Limpia componentes viejos de Windows (WinSxS).
+- Everything in the Basic level.
+- Uninstalls unnecessary preinstalled apps (Solitaire, News, Weather, Clipchamp, personal Teams, filler games, etc.).
+- Turns off suggestions, ads and recommendations in the Start menu and lock screen.
+- Disables Microsoft telemetry scheduled tasks.
+- Disables known startup programs that aren't needed (Spotify, Teams, Skype, Adobe/Java updaters...).
+- Cleans old Windows components (WinSxS).
 
-**Consecuencias a tener en cuenta**
+**Consequences to keep in mind**
 
-- Las apps desinstaladas desaparecen; si las quiere de nuevo hay que bajarlas de Microsoft Store.
-- Los programas que se deshabilitaron del inicio ya no se abren solos (se abren a mano cuando se necesitan).
-- Dejan de aparecer apps sugeridas y publicidad en Inicio.
+- Uninstalled apps disappear; if you want them back you have to download them from the Microsoft Store.
+- Programs disabled at startup no longer open on their own (open them by hand when you need them).
+- Suggested apps and ads stop appearing in Start.
 
-**Reversibilidad:** Registro, tareas e inicio se restauran con un clic. Las apps se intentan recuperar; si no, Microsoft Store.
+**Reversibility:** Registry, tasks and startup are restored with one click. Apps are recovered when possible; otherwise, from the Microsoft Store.
 
-### Cambios que incorpora este nivel (9)
+### Changes introduced by this level (9)
 
-| Cambio | Grupo | Riesgo | Reversible | Marcado por defecto | Qué hace | Consecuencia |
+| Change | Group | Risk | Reversible | Checked by default | What it does | Consequence |
 |---|---|---|---|---|---|---|
-| **Desinstalar apps preinstaladas innecesarias**<br>`apps_bloat` | Apps preinstaladas | 🟢 bajo | no | sí | Quita Solitario, Noticias, Clima, Finanzas, Deportes, Obtener ayuda, Sugerencias, Office Hub, Feedback Hub, Mixed Reality, 3D Viewer, Skype, People, Cortana, Clipchamp, Teams personal, Power Automate y juegos/promos de terceros (Candy Crush, TikTok, Netflix, Spotify, Disney, Facebook, Instagram, Amazon...). | Las apps desaparecen del menú Inicio. Si las querés, se bajan de Microsoft Store. |
-| **Desinstalar Vincular con el móvil y Correo/Calendario**<br>`apps_opcionales` | Apps preinstaladas | 🟠 medio | no | no | Quita 'Vincular con el móvil' (Phone Link) y las apps Correo y Calendario de Windows. | No se podrá usar Phone Link ni la app de Correo/Calendario. Si las usás, NO marcar. |
-| **Apagar publicidad y sugerencias de Windows**<br>`reg_sugerencias` | Publicidad y sugerencias | 🟢 bajo | sí | sí | Desactiva el ID de publicidad, apps sugeridas, consejos, recomendaciones del menú Inicio y anuncios en el Explorador. | Dejan de aparecer apps sugeridas y publicidad en Inicio/bloqueo. Aplica al usuario actual. |
-| **Desactivar tareas programadas de telemetría**<br>`tareas_telemetria` | Telemetría | 🟢 bajo | sí | sí | Deshabilita tareas que recopilan y envían datos de uso (Compatibility Appraiser, CEIP, Feedback, etc.). | Microsoft recibe menos datos de uso. Sin efecto en el funcionamiento diario. |
-| **Deshabilitar programas de inicio innecesarios**<br>`inicio_conocidos` | Programas de inicio | 🟢 bajo | sí | sí | Deshabilita al arranque: Spotify, Discord, Teams, Skype, actualizadores de Adobe/Java, Edge auto-inicio, CCleaner Monitor, iTunes Helper, Cortana. | Esos programas no se abren solos: se abren a mano cuando se necesitan. Revisá si usás Discord/Spotify siempre. |
-| **Limpiar componentes de Windows (WinSxS)**<br>`limp_componentes` | Mantenimiento | 🟢 bajo | no | sí | Elimina versiones viejas de componentes de Windows (WinSxS). Libera varios GB. Lento. | Ya no se pueden desinstalar actualizaciones antiguas. El proceso tarda varios minutos. |
-| **Verificar archivos del sistema (SFC)**<br>`limp_sfc` | Mantenimiento | 🟢 bajo | no | no | Verifica y repara archivos dañados de Windows (10-30 min). | Ninguna; solo tarda. Úsalo si la PC tiene errores o cuelgues. |
-| **Reparar imagen de Windows (DISM)**<br>`limp_dism` | Mantenimiento | 🟢 bajo | no | no | Repara la imagen de Windows (útil si SFC no pudo reparar). | Ninguna; puede tardar y necesita internet. |
-| **Optimizar unidad (desfragmentar / TRIM)**<br>`limp_defrag` | Mantenimiento | 🟢 bajo | no | no | Desfragmenta si es disco mecánico; hace TRIM si es SSD. | En HDD puede tardar horas; la PC va más lenta mientras corre. |
+| **Uninstall unnecessary preinstalled apps**<br>`apps_bloat` | Preinstalled apps | 🟢 low | no | yes | Removes Solitaire, News, Weather, Finance, Sports, Get Help, Tips, Office Hub, Feedback Hub, Mixed Reality, 3D Viewer, Skype, People, Cortana, Clipchamp, personal Teams, Power Automate and third-party games/promos (Candy Crush, TikTok, Netflix, Spotify, Disney, Facebook, Instagram, Amazon...). | The apps disappear from the Start menu. If you want them, download them from the Microsoft Store. |
+| **Uninstall Phone Link and Mail/Calendar**<br>`apps_opcionales` | Preinstalled apps | 🟠 medium | no | no | Removes 'Phone Link' and the Windows Mail and Calendar apps. | You won't be able to use Phone Link or the Mail/Calendar app. If you use them, do NOT select this. |
+| **Turn off Windows ads and suggestions**<br>`reg_sugerencias` | Ads and suggestions | 🟢 low | yes | yes | Disables the advertising ID, suggested apps, tips, Start menu recommendations and ads in Explorer. | Suggested apps and ads stop appearing in Start/lock screen. Applies to the current user. |
+| **Disable telemetry scheduled tasks**<br>`tareas_telemetria` | Telemetry | 🟢 low | yes | yes | Disables tasks that collect and send usage data (Compatibility Appraiser, CEIP, Feedback, etc.). | Microsoft receives less usage data. No effect on daily use. |
+| **Disable unnecessary startup programs**<br>`inicio_conocidos` | Startup programs | 🟢 low | yes | yes | Disables at boot: Spotify, Discord, Teams, Skype, Adobe/Java updaters, Edge auto-start, CCleaner Monitor, iTunes Helper, Cortana. | Those programs don't open on their own: open them by hand when needed. Check whether you always use Discord/Spotify. |
+| **Clean Windows components (WinSxS)**<br>`limp_componentes` | Maintenance | 🟢 low | no | yes | Removes old versions of Windows components (WinSxS). Frees several GB. Slow. | Old updates can no longer be uninstalled. The process takes several minutes. |
+| **Verify system files (SFC)**<br>`limp_sfc` | Maintenance | 🟢 low | no | no | Verifies and repairs corrupted Windows files (10-30 min). | None; it just takes time. Use it if the PC has errors or freezes. |
+| **Repair Windows image (DISM)**<br>`limp_dism` | Maintenance | 🟢 low | no | no | Repairs the Windows image (useful if SFC couldn't repair). | None; it may take a while and needs internet. |
+| **Optimize drive (defragment / TRIM)**<br>`limp_defrag` | Maintenance | 🟢 low | no | no | Defragments if it's a mechanical disk; runs TRIM if it's an SSD. | On an HDD it can take hours; the PC is slower while it runs. |
 
-## Extremo / Gaming - Mínimo de procesos
+## Extreme / Gaming - Minimum processes
 
-**Ideal para:** PC de juegos o equipos con poca RAM / disco mecánico donde se busca la mayor reducción posible.
+**Ideal for:** Gaming PCs or machines with little RAM / a mechanical disk where the biggest possible reduction is wanted.
 
-**Qué hace**
+**What it does**
 
-- Todo lo del nivel Profundo.
-- Desactiva servicios innecesarios (telemetría, fax, mapas, modo demo, seguimiento de vínculos...).
-- Opcionales según el equipo: SysMain, búsqueda de Windows, cola de impresión, Bluetooth, servicios Xbox.
-- Impide que las apps de la Tienda corran en segundo plano y quita Widgets/Noticias.
-- Modo Juego activo, grabación en segundo plano (Game DVR) desactivada, efectos visuales mínimos.
-- Plan de energía de alto rendimiento (solo PC de escritorio por defecto).
+- Everything in the Deep level.
+- Disables unnecessary services (telemetry, fax, maps, demo mode, link tracking...).
+- Optional depending on the machine: SysMain, Windows Search, print spooler, Bluetooth, Xbox services.
+- Stops Store apps from running in the background and removes Widgets/News.
+- Game Mode on, background recording (Game DVR) off, minimal visual effects.
+- High-performance power plan (desktop PCs only by default).
 
-**Consecuencias a tener en cuenta**
+**Consequences to keep in mind**
 
-- Sin cola de impresión no se puede imprimir; sin Bluetooth no andan auriculares/mouse inalámbricos; sin servicios Xbox no andan Game Pass ni juegos de la Tienda de Microsoft.
-- Sin la búsqueda de Windows, buscar archivos desde el Explorador/Inicio es más lento.
-- Algunas apps (Correo, Alarmas) no actualizan ni notifican en segundo plano.
-- Las ventanas ya no tienen animaciones ni transparencias.
-- Si querés volver a usar algo de lo anterior, se restaura en un clic desde la herramienta.
+- Without the print spooler you can't print; without Bluetooth, wireless headsets/mice don't work; without Xbox services, Game Pass and Microsoft Store games don't work.
+- Without Windows Search, finding files from Explorer/Start is slower.
+- Some apps (Mail, Alarms) don't update or notify in the background.
+- Windows no longer have animations or transparency.
+- If you want to use something from the above again, it is restored with one click from the tool.
 
-**Reversibilidad:** Todo se deshace con 'restaurar' (guarda el estado original de cada servicio y ajuste) y además existe el punto de restauración de Windows.
+**Reversibility:** Everything is undone with 'restore' (it stores the original state of every service and setting), and the Windows restore point also exists.
 
-### Cambios que incorpora este nivel (16)
+### Changes introduced by this level (16)
 
-| Cambio | Grupo | Riesgo | Reversible | Marcado por defecto | Qué hace | Consecuencia |
+| Change | Group | Risk | Reversible | Checked by default | What it does | Consequence |
 |---|---|---|---|---|---|---|
-| **Telemetría de Windows al mínimo**<br>`reg_telemetria` | Telemetría | 🟢 bajo | sí | sí | Pone la recolección de diagnóstico al mínimo permitido y apaga avisos de comentarios. | Microsoft recibe el mínimo de datos. En ediciones Home/Pro Windows mantiene un nivel básico obligatorio. |
-| **Servicios de telemetría y reportes**<br>`svc_telemetria` | Servicios | 🟢 bajo | sí | sí | Deshabilita 'Experiencias del usuario y telemetría' (DiagTrack), enrutador push (dmwappushservice) y Informe de errores (WerSvc). | No se envían informes de errores a Microsoft. No afecta el uso diario. |
-| **Servicios que casi nadie usa**<br>`svc_inutiles` | Servicios | 🟢 bajo | sí | sí | Deshabilita Fax, Mapas descargados, Modo demo de tienda, Uso compartido de Media Player, Seguimiento de vínculos distribuidos y Programa Windows Insider. | No se puede enviar/recibir fax, ni usar mapas sin conexión, ni recibir builds Insider. Para casi todos, sin efecto. |
-| **Servicio de ubicación**<br>`svc_geoloc` | Servicios | 🟢 bajo | sí | no | Deshabilita el servicio de geolocalización. | Las apps de clima/mapas no detectan la ubicación solas. |
-| **Optimización de entrega en manual**<br>`svc_entrega` | Servicios | 🟢 bajo | sí | sí | Pasa a manual el servicio que comparte descargas de Windows con otras PCs de internet. | Windows Update sigue funcionando; solo deja de compartir ancho de banda. |
-| **SysMain (Superfetch)**<br>`svc_sysmain` | Servicios (según equipo) | 🟠 medio | sí | según el equipo | Deshabilita la precarga de programas en RAM. Recomendado en SSD; en disco mecánico conviene dejarlo. | En disco mecánico las apps abren más lento. En SSD no se nota. |
-| **Búsqueda de Windows (indexación)**<br>`svc_busqueda` | Servicios (según equipo) | 🟠 medio | sí | según el equipo | Deshabilita el indexador. Reduce mucho el uso de disco en discos mecánicos. | Buscar archivos desde el Explorador/Inicio es mucho más lento. Outlook pierde la búsqueda rápida. |
-| **Cola de impresión**<br>`svc_impresion` | Servicios (según equipo) | 🔴 alto | sí | según el equipo | Deshabilita el servicio de impresión (también cierra una puerta de ataques conocida). | NO se podrá imprimir (ni a PDF desde algunas apps) hasta restaurar. Solo para equipos sin impresora. |
-| **Bluetooth**<br>`svc_bluetooth` | Servicios (según equipo) | 🔴 alto | sí | no | Deshabilita el servicio de soporte Bluetooth. | Dejan de funcionar auriculares, mouse y teclados Bluetooth. Solo si no los usás. |
-| **Servicios de Xbox**<br>`svc_xbox` | Servicios (según equipo) | 🔴 alto | sí | no | Deshabilita autenticación, partidas guardadas, accesorios y red de Xbox. | NO funcionan Game Pass, app de Xbox ni juegos de Microsoft Store. Steam/Epic/Battle.net no se afectan. |
-| **Bloquear apps de la Tienda en segundo plano**<br>`reg_segundo_plano` | Procesos en segundo plano | 🟠 medio | sí | sí | Impide que las apps de la Tienda corran en segundo plano y quita Widgets/Noticias. | Apps como Correo, Alarmas o Clima no actualizan ni notifican con la app cerrada. Widgets desaparece. |
-| **Modo Juego activo y sin grabación en segundo plano**<br>`reg_gaming` | Gaming | 🟢 bajo | sí | sí | Activa el Modo Juego y apaga Game DVR (grabación automática en segundo plano). | Win+G ya no graba clips automáticamente. Mejor rendimiento y menos procesos al jugar. Aplica al usuario actual. |
-| **Programación de GPU acelerada por hardware (HAGS)**<br>`reg_hags` | Gaming | 🟠 medio | sí | no | Activa HAGS. Puede mejorar latencia en GPUs recientes (NVIDIA serie 10+, AMD RX 5000+). | Requiere reiniciar. En algunos drivers/juegos causa cuelgues o peor rendimiento: probar y revertir si pasa. |
-| **Efectos visuales mínimos**<br>`reg_visual` | Efectos visuales | 🟢 bajo | sí | sí | Apaga transparencias y animaciones de ventanas y barra de tareas. | La interfaz se ve más 'plana', sin efectos de transición. Se nota al cerrar sesión y volver a entrar. |
-| **Plan de energía: Alto rendimiento**<br>`energia` | Energía | 🟠 medio | sí | según el equipo | Evita que el procesador baje de frecuencia para ahorrar energía. | Más consumo y calor. En notebooks reduce mucho la autonomía de la batería. |
-| **Desactivar hibernación e inicio rápido**<br>`hibernacion` | Energía | 🟢 bajo | sí | no | Elimina hiberfil.sys (libera gigas = tamaño de la RAM) y desactiva el inicio rápido. | No se puede hibernar y el arranque puede ser unos segundos más lento. Útil si falta espacio en disco. |
+| **Windows telemetry to the minimum**<br>`reg_telemetria` | Telemetry | 🟢 low | yes | yes | Sets diagnostic data collection to the minimum allowed and turns off feedback prompts. | Microsoft receives the minimum data. On Home/Pro editions Windows keeps a mandatory basic level. |
+| **Telemetry and reporting services**<br>`svc_telemetria` | Services | 🟢 low | yes | yes | Disables 'Connected User Experiences and Telemetry' (DiagTrack), the push router (dmwappushservice) and Error Reporting (WerSvc). | Error reports are not sent to Microsoft. Daily use is not affected. |
+| **Services almost nobody uses**<br>`svc_inutiles` | Services | 🟢 low | yes | yes | Disables Fax, Downloaded Maps, Retail Demo, Media Player sharing, Distributed Link Tracking and the Windows Insider Program. | You can't send/receive faxes, use offline maps or get Insider builds. For almost everyone, no effect. |
+| **Location service**<br>`svc_geoloc` | Services | 🟢 low | yes | no | Disables the geolocation service. | Weather/maps apps can't detect your location by themselves. |
+| **Delivery Optimization on manual**<br>`svc_entrega` | Services | 🟢 low | yes | yes | Sets to manual the service that shares Windows downloads with other PCs on the internet. | Windows Update keeps working; it just stops sharing bandwidth. |
+| **SysMain (Superfetch)**<br>`svc_sysmain` | Services (depending on the machine) | 🟠 medium | yes | depends on the machine | Disables program preloading into RAM. Recommended on SSDs; on a mechanical disk it's better to leave it. | On a mechanical disk apps open slower. On an SSD you won't notice. |
+| **Windows Search (indexing)**<br>`svc_busqueda` | Services (depending on the machine) | 🟠 medium | yes | depends on the machine | Disables the indexer. Greatly reduces disk usage on mechanical disks. | Searching files from Explorer/Start is much slower. Outlook loses fast search. |
+| **Print spooler**<br>`svc_impresion` | Services (depending on the machine) | 🔴 high | yes | depends on the machine | Disables the print service (it also closes a well-known attack surface). | You will NOT be able to print (not even to PDF from some apps) until restored. Only for machines without a printer. |
+| **Bluetooth**<br>`svc_bluetooth` | Services (depending on the machine) | 🔴 high | yes | no | Disables the Bluetooth support service. | Bluetooth headsets, mice and keyboards stop working. Only if you don't use them. |
+| **Xbox services**<br>`svc_xbox` | Services (depending on the machine) | 🔴 high | yes | no | Disables Xbox authentication, saved games, accessories and networking. | Game Pass, the Xbox app and Microsoft Store games do NOT work. Steam/Epic/Battle.net are not affected. |
+| **Block Store apps in the background**<br>`reg_segundo_plano` | Background processes | 🟠 medium | yes | yes | Stops Store apps from running in the background and removes Widgets/News. | Apps like Mail, Alarms or Weather don't update or notify while closed. Widgets disappears. |
+| **Game Mode on and no background recording**<br>`reg_gaming` | Gaming | 🟢 low | yes | yes | Turns on Game Mode and turns off Game DVR (automatic background recording). | Win+G no longer records clips automatically. Better performance and fewer processes while gaming. Applies to the current user. |
+| **Hardware-accelerated GPU scheduling (HAGS)**<br>`reg_hags` | Gaming | 🟠 medium | yes | no | Turns on HAGS. May improve latency on recent GPUs (NVIDIA 10 series+, AMD RX 5000+). | Requires a reboot. With some drivers/games it causes crashes or worse performance: test it and revert if that happens. |
+| **Minimal visual effects**<br>`reg_visual` | Visual effects | 🟢 low | yes | yes | Turns off transparency and animations of windows and the taskbar. | The interface looks more 'flat', without transition effects. You notice it after signing out and back in. |
+| **Power plan: High performance**<br>`energia` | Power | 🟠 medium | yes | depends on the machine | Prevents the processor from lowering its frequency to save power. | More power use and heat. On laptops it greatly reduces battery life. |
+| **Disable hibernation and fast startup**<br>`hibernacion` | Power | 🟢 low | yes | no | Deletes hiberfil.sys (frees gigabytes = size of the RAM) and disables fast startup. | You can't hibernate and boot may be a few seconds slower. Useful if disk space is short. |
 
-## Qué NO toca nunca
+## What it NEVER touches
 
-- Windows Defender ni el Firewall (no se desactivan ni se modifican).
-- Windows Update: no se desactiva; solo se limpian las descargas que ya se instalaron.
-- Servicios de red y audio.
-- Apps críticas: Microsoft Store, Calculadora, Fotos, Bloc de notas, Terminal, Edge, Seguridad de Windows.
-- Archivos personales (documentos, fotos, escritorio).
-- El registro de Windows más allá de los ajustes listados arriba (no hay «limpiador de registro»).
+- Windows Defender and the Firewall (never disabled or modified).
+- Windows Update: never disabled; only the downloads that were already installed are cleaned.
+- Network and audio services.
+- Critical apps: Microsoft Store, Calculator, Photos, Notepad, Terminal, Edge, Windows Security.
+- Personal files (documents, photos, desktop).
+- The Windows registry beyond the settings listed above (there is no "registry cleaner").

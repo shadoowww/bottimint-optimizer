@@ -1,37 +1,39 @@
-# Guía de pruebas en máquina virtual
+# Virtual machine testing guide
 
-**Importante:** probá siempre en una VM antes de usar la herramienta en un equipo que te importe.
+**Important:** always test in a VM before using the tool on a machine you care about.
 
-## Preparación
+## Preparation
 
-1. Creá una VM con **Windows 11** (y, si podés, otra con **Windows 10**), mínimo 4 GB de RAM y 60 GB de disco.
-2. Completá la instalación de Windows, actualizá y abrí la **Microsoft Store** una vez (registra winget).
-3. Activá la **Protección del sistema** en la unidad C: (Panel de control → Sistema → Protección del sistema).
-4. Instalá Python 3.10+ (o usá el `.exe`).
-5. **Sacá un snapshot** de la VM («estado limpio»).
+1. Create a VM with **Windows 11** (and, if you can, another with **Windows 10**), at least 4 GB of RAM and 60 GB of disk.
+2. Finish the Windows installation, update it and open the **Microsoft Store** once (it registers winget).
+3. Turn on **System Protection** for drive C: (Control Panel → System → System Protection).
+4. Install Python 3.10+ (or use the `.exe`).
+5. **Take a snapshot** of the VM ("clean state").
 
-## Lista de pruebas
+## Test checklist
 
-| # | Prueba | Resultado esperado |
+| # | Test | Expected result |
 |---|---|---|
-| 1 | Abrir la interfaz como administrador | Pestaña *Inicio* con datos del equipo, «Permisos: Administrador», winget «Disponible». |
-| 2 | Abrir **sin** administrador | Aviso rojo arriba; aplicar cambios del sistema se rechaza. |
-| 3 | Optimización → **Básico**, vista previa | 9 cambios; papelera en riesgo medio. |
-| 4 | Aplicar **Básico** | Se crea el punto de restauración; se liberan MB/GB; aparece el informe en el Escritorio. |
-| 5 | **Restaurar una sesión** (Básico) | Termina sin errores. |
-| 6 | Aplicar **Profundo** | Apps de fábrica desinstaladas, publicidad apagada, tareas de telemetría deshabilitadas. La Store, Calculadora y Fotos siguen. |
-| 7 | **Restaurar** el Profundo | Vuelven ajustes, tareas e inicio. Las apps: reinstalar desde la Store (esperado). |
-| 8 | Aplicar **Extremo** | Servicios ajustados; Modo Juego activo; efectos visuales mínimos (cerrar sesión para verlos). |
-| 9 | Comprobar la PC tras el Extremo | Internet, audio, Windows Update y Defender funcionan. |
-| 10 | **Restaurar** el Extremo y reiniciar | Servicios y ajustes como al inicio (comparar con el snapshot). |
-| 11 | Forzar un fallo del punto de restauración (desactivar la Protección del sistema) | Aborta con mensaje y **no cambia nada**. |
-| 12 | Programas → **Verificar IDs del catálogo** | «Todos los IDs existen». Si alguno falla, corregirlo en `instalador.py`. |
-| 13 | Programas → perfil **oficina** | Se instalan en silencio; informe en `C:\ProgramData\BottiMint\instalaciones`. |
-| 14 | Programas → perfil **gamer** | Launchers y runtimes instalados; Steam puede pedir reinicio. |
-| 15 | Volver al snapshot y repetir con **Windows 10** | Mismos resultados (winget puede requerir «Instalador de aplicaciones»). |
+| 1 | Open the interface as administrator | *Home* tab with machine data, "Permissions: Administrator", winget "Available". |
+| 2 | Open it **without** administrator rights | Red notice at the top; applying system changes is refused. |
+| 3 | Optimization → **Basic**, preview | 9 changes; recycle bin at medium risk. |
+| 4 | Apply **Basic** | The restore point is created; MB/GB are freed; the report appears on the Desktop. |
+| 5 | **Restore a session** (Basic) | Finishes without errors. |
+| 6 | Apply **Deep** | Pre-installed apps uninstalled, advertising off, telemetry tasks disabled. The Store, Calculator and Photos remain. |
+| 7 | **Restore** the Deep session | Settings, tasks and startup come back. Apps: reinstall from the Store (expected). |
+| 8 | Apply **Extreme** | Services adjusted; Game Mode on; minimal visual effects (sign out to see them). |
+| 9 | Check the PC after Extreme | Internet, audio, Windows Update and Defender work. |
+| 10 | **Restore** the Extreme session and reboot | Services and settings as at the start (compare with the snapshot). |
+| 11 | Force a restore-point failure (turn off System Protection) | Aborts with a message and **changes nothing**. |
+| 12 | Programs → **Verify catalog IDs** | "All IDs exist". If any fails, fix it in `instalador.py`. |
+| 13 | Programs → **office** profile | Installs silently; report in `C:\ProgramData\BottiMint\instalaciones`. |
+| 14 | Programs → **gamer** profile | Launchers and runtimes installed; Steam may ask for a reboot. |
+| 15 | Go back to the snapshot and repeat on **Windows 10** | Same results (winget may require "App Installer"). |
 
-## Qué anotar
+Also check that choosing a level in the Optimization tab changes nothing by itself (it only shows the preview) and that the **Exit** button asks for confirmation.
 
-- Capturas de pantalla reales (reemplazan las de `docs/img/`).
-- Cualquier ID de winget que no exista o cambie.
-- Cualquier cambio que no se haya revertido bien: abrir un *issue* con el `manifest.json` de la sesión.
+## What to write down
+
+- Real screenshots (they replace those in `docs/img/`).
+- Any winget ID that does not exist or changes.
+- Any change that was not reverted properly: open an *issue* with the session's `manifest.json`.

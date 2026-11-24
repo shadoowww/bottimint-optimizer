@@ -1,47 +1,46 @@
 # Changelog
 
-Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versionado semántico.
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semantic versioning.
 
 ## [1.1.1] - 2026-11-24
 
-### Cambiado
-- **Optimización:** el botón «Aplicar cambios marcados (N)» pasó sobre la lista de casillas (siempre visible), con contador de cambios marcados; se desactiva si no hay nada marcado. Elegir un nivel solo muestra la vista previa (lectura) y nunca aplica nada; el mensaje del registro lo aclara.
-- Paneles y registro más compactos para que todo entre en pantallas chicas.
-- Capturas del README actualizadas; se quitaron del repositorio archivos internos de publicación.
+### Changed
+- **Optimization:** the "Apply selected changes (N)" button now sits above the checkbox list (always visible), with a counter of selected changes; it is disabled when nothing is selected. Choosing a level only shows the (read-only) preview and never applies anything; the log message says so.
+- More compact panels and log so everything fits on small screens.
+- **Documentation is now in English** (the Spanish README is kept as `README.es.md`). README screenshots updated; internal publishing files were removed from the repository.
 
 ## [1.1.0] - 2026-11-24
 
-### Cambiado
-- La app ahora se llama **BottiMint** (paquete `bottimint`, `BottiMint.exe`, `C:\ProgramData\BottiMint`).
-- Uso universal: se quitaron los datos de «técnico/negocio» y las menciones a «cliente»; el perfil `tecnico` pasó a `herramientas`.
+### Changed
+- The app is now called **BottiMint** (package `bottimint`, `BottiMint.exe`, `C:\ProgramData\BottiMint`).
+- Universal use: the "technician/business" details and the mentions of "client" were removed; the `tecnico` profile became `herramientas`.
 
-### Agregado
-- **Tema claro y oscuro** (botones ☀ / ☾ en la cabecera), con acento mint, respeto del modo de Windows por defecto y barra de título oscura.
-- **Idiomas:** español, inglés (completo), ruso, japonés y chino (interfaz; descripciones largas en inglés). Selector en la cabecera.
-- Preferencias (idioma/tema) guardadas por usuario en `%APPDATA%\BottiMint\ajustes.json`, validadas contra listas cerradas.
-- Atestación de procedencia (GitHub build provenance) en los releases y análisis estático `bandit` en CI.
+### Added
+- **Light and dark themes** (☀ / ☾ buttons in the header), mint accent, follows the Windows mode by default and dark title bar.
+- **Languages:** Spanish, English (complete), Russian, Japanese and Chinese (interface; long descriptions fall back to English). Selector in the header.
+- Preferences (language/theme) stored per user in `%APPDATA%\BottiMint\ajustes.json`, validated against closed lists.
+- Build provenance attestation (GitHub) on releases and `bandit` static analysis in CI.
+- **"Exit" button** (⏻) with confirmation; it warns specially if a task is running. Closing with the X also asks for confirmation.
+- **Rounded interface:** buttons, level selectors, cards and dialogs with rounded corners (`bottimint/widgets.py`). Own dialogs with light/dark theme.
+- `docs/AUDITORIA_SEGURIDAD.md` (security audit).
 
-- **Botón «Salir»** (⏻) con confirmación; avisa de forma especial si hay una tarea en curso. También confirma al cerrar con la X.
-- **Interfaz redondeada**: botones, selectores de nivel, tarjetas y diálogos con esquinas redondeadas (`bottimint/widgets.py`). Diálogos propios con tema claro/oscuro.
-- Documento `docs/AUDITORIA_SEGURIDAD.md` y guía de publicación actualizada.
-
-### Seguridad
-- Limpieza: recorrido propio que no entra a junctions/enlaces; protección de carpetas críticas aunque una variable de entorno apunte ahí.
-- Comandos del sistema por ruta absoluta de System32; carpeta de datos con comprobación de enlaces y permisos restringidos.
-- Restauración: cada entrada del manifiesto se valida contra el catálogo; ID de sesión validado; escritura atómica.
-- Validación de IDs de winget, escape de valores en PowerShell, carpeta temporal privada.
-- `descargar_y_ejecutar.ps1`: valida parámetros y URLs, soporta `-Tag`, verifica el hash sobre el archivo bloqueado contra escritura.
-- Nuevas pruebas: `tests/test_seguridad.py`, `tests/test_idiomas.py` (55 en total).
+### Security
+- Cleanup: own directory walker that never enters junctions/links; protection of critical folders even if an environment variable points there.
+- System commands by absolute System32 path; data folder with link checks and restricted permissions.
+- Restore: every manifest entry is validated against the catalog; session ID validated; atomic writes.
+- winget ID validation, PowerShell value escaping, private temporary folder.
+- `descargar_y_ejecutar.ps1`: validates parameters and URLs, supports `-Tag`, verifies the hash on a write-locked file handle.
+- New tests: `tests/test_seguridad.py`, `tests/test_idiomas.py` (55 in total).
 
 ## [1.0.0] - 2026-11-24
 
-### Agregado
-- **Optimización por niveles** (Básico, Profundo, Extremo/Gaming), acumulativos, con explicación y consecuencias de cada cambio.
-- **Punto de restauración obligatorio y verificado** antes de aplicar; si no se puede crear, no se modifica nada.
-- **Restauración** por sesión: manifiesto con el estado previo de registro, servicios, tareas programadas, inicio y plan de energía.
-- Opciones que dependen del equipo (SSD/HDD, batería, impresoras) para preseleccionar solo lo conveniente.
-- **Módulo de programas** (winget): catálogo curado con categoría Gaming, perfiles oficina/gamer/técnico, detección de instalados, verificación de IDs y actualización masiva.
-- **Interfaz gráfica** unificada (tkinter) con confirmación obligatoria de consecuencias.
-- Informes para el cliente (Escritorio y `C:\ProgramData\BottiMint`).
-- CI (tests en Windows y Linux) y release automático del `.exe` con SHA256.
-- Script `descargar_y_ejecutar.ps1` con verificación de integridad.
+### Added
+- **Tiered optimization** (Basic, Deep, Extreme/Gaming), cumulative, with an explanation and the consequences of every change.
+- **Mandatory, verified restore point** before applying; if it cannot be created, nothing is modified.
+- **Per-session restore:** manifest with the previous state of registry, services, scheduled tasks, startup and power plan.
+- Machine-dependent options (SSD/HDD, battery, printers) to preselect only what makes sense.
+- **Programs module** (winget): curated catalog with a Gaming category, office/gamer/tools profiles, installed-program detection, ID verification and bulk update.
+- Unified **graphical interface** (tkinter) with mandatory confirmation of the consequences.
+- Reports (Desktop and `C:\ProgramData\BottiMint`).
+- CI (tests on Windows and Linux) and automatic release of the `.exe` with SHA256.
+- `descargar_y_ejecutar.ps1` script with integrity verification.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Genera docs/NIVELES.md y docs/PROGRAMAS.md DESDE EL CÓDIGO, para que la documentación nunca quede desactualizada.
+"""Genera docs/NIVELES.md y docs/PROGRAMAS.md (en inglés) DESDE EL CÓDIGO, para que la documentación nunca quede desactualizada.
 
     python scripts/generar_docs.py
 """
@@ -10,9 +10,12 @@ import sys
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 
-from bottimint import instalador, nucleo  # noqa: E402
+from bottimint import i18n, instalador, nucleo  # noqa: E402
+from bottimint.i18n import tr  # noqa: E402
 
-RIESGO = {"bajo": "🟢 bajo", "medio": "🟠 medio", "alto": "🔴 alto"}
+i18n.set_idioma("en")  # la documentación del repositorio se genera en inglés (los textos vienen de las traducciones de la app)
+
+RIESGO = {"bajo": "🟢 low", "medio": "🟠 medium", "alto": "🔴 high"}
 
 
 def celda(t: str) -> str:
@@ -20,54 +23,54 @@ def celda(t: str) -> str:
 
 
 def niveles() -> str:
-    L = ["# Niveles de optimización", "",
-         "> Generado automáticamente desde `bottimint/nucleo.py` con `python scripts/generar_docs.py`. No editar a mano.", "",
-         "Los niveles son **acumulativos**: Profundo incluye todo Básico, y Extremo incluye todo Profundo.",
-         "Antes de aplicar cualquiera se crea un **punto de restauración de Windows** y se verifica; si no se puede crear, **no se modifica nada**.", ""]
+    L = ["# Optimization levels", "",
+         "> Automatically generated from `bottimint/nucleo.py` with `python scripts/generar_docs.py`. Do not edit by hand.", "",
+         "The levels are **cumulative**: Deep includes everything in Basic, and Extreme includes everything in Deep.",
+         "Before applying any of them a **Windows restore point** is created and verified; if it cannot be created, **nothing is modified**.", ""]
     for n in nucleo.ORDEN:
         d = nucleo.NIVELES[n]
-        L += [f"## {d['titulo']}", "", f"**Ideal para:** {d['para_quien']}", "", "**Qué hace**", ""]
-        L += [f"- {x}" for x in d["que_hace"]]
-        L += ["", "**Consecuencias a tener en cuenta**", ""] + [f"- {x}" for x in d["consecuencias"]]
-        L += ["", f"**Reversibilidad:** {d['reversibilidad']}", ""]
+        L += [f"## {tr(d['titulo'])}", "", f"**Ideal for:** {tr(d['para_quien'])}", "", "**What it does**", ""]
+        L += [f"- {tr(x)}" for x in d["que_hace"]]
+        L += ["", "**Consequences to keep in mind**", ""] + [f"- {tr(x)}" for x in d["consecuencias"]]
+        L += ["", f"**Reversibility:** {tr(d['reversibilidad'])}", ""]
         nuevos = [c for c in nucleo.CATALOGO if c.nivel == n]
-        L += [f"### Cambios que incorpora este nivel ({len(nuevos)})", "",
-              "| Cambio | Grupo | Riesgo | Reversible | Marcado por defecto | Qué hace | Consecuencia |",
+        L += [f"### Changes introduced by this level ({len(nuevos)})", "",
+              "| Change | Group | Risk | Reversible | Checked by default | What it does | Consequence |",
               "|---|---|---|---|---|---|---|"]
         for c in nuevos:
             if callable(c._defecto):
-                pre = "según el equipo"
+                pre = "depends on the machine"
             else:
-                pre = "sí" if c._defecto else "no"
-            L.append(f"| **{celda(c.titulo)}**<br>`{c.id}` | {celda(c.grupo)} | {RIESGO.get(c.riesgo, c.riesgo)} | "
-                     f"{'sí' if c.reversible else 'no'} | {pre} | {celda(c.que_hace)} | {celda(c.consecuencia)} |")
+                pre = "yes" if c._defecto else "no"
+            L.append(f"| **{celda(tr(c.titulo))}**<br>`{c.id}` | {celda(tr(c.grupo))} | {RIESGO.get(c.riesgo, c.riesgo)} | "
+                     f"{'yes' if c.reversible else 'no'} | {pre} | {celda(tr(c.que_hace))} | {celda(tr(c.consecuencia))} |")
         L.append("")
-    L += ["## Qué NO toca nunca", "",
-          "- Windows Defender ni el Firewall (no se desactivan ni se modifican).",
-          "- Windows Update: no se desactiva; solo se limpian las descargas que ya se instalaron.", "- Servicios de red y audio.",
-          "- Apps críticas: Microsoft Store, Calculadora, Fotos, Bloc de notas, Terminal, Edge, Seguridad de Windows.",
-          "- Archivos personales (documentos, fotos, escritorio).", "- El registro de Windows más allá de los ajustes listados arriba (no hay «limpiador de registro»)."]
+    L += ["## What it NEVER touches", "",
+          "- Windows Defender and the Firewall (never disabled or modified).",
+          "- Windows Update: never disabled; only the downloads that were already installed are cleaned.", "- Network and audio services.",
+          "- Critical apps: Microsoft Store, Calculator, Photos, Notepad, Terminal, Edge, Windows Security.",
+          "- Personal files (documents, photos, desktop).", "- The Windows registry beyond the settings listed above (there is no \"registry cleaner\")."]
     return "\n".join(L) + "\n"
 
 
 def programas() -> str:
-    L = ["# Catálogo de programas", "",
-         "> Generado automáticamente desde `bottimint/instalador.py` con `python scripts/generar_docs.py`. No editar a mano.", "",
-         "Todo se instala con **winget** (fuente oficial `winget`), en silencio y con el ID exacto.", "", "## Perfiles", ""]
+    L = ["# Program catalog", "",
+         "> Automatically generated from `bottimint/instalador.py` with `python scripts/generar_docs.py`. Do not edit by hand.", "",
+         "Everything is installed with **winget** (official `winget` source), silently and with the exact ID.", "", "## Profiles", ""]
     for k, v in instalador.PERFILES.items():
-        L += [f"### `{k}` - {v['titulo']}", "", v["descripcion"], "",
+        L += [f"### `{k}` - {tr(v['titulo'])}", "", tr(v["descripcion"]), "",
               ", ".join(instalador.POR_ID[i].nombre for i in v["ids"]), ""]
-    L += ["## Catálogo completo", ""]
+    L += ["## Full catalog", ""]
     cat = None
     for p in instalador.CATALOGO:
         if p.categoria != cat:
             cat = p.categoria
-            L += ["", f"### {cat}", "", "| Programa | ID de winget | Descripción | Nota |", "|---|---|---|---|"]
-        L.append(f"| {celda(p.nombre)} | `{p.id}` | {celda(p.descripcion)} | {celda(p.nota)} |")
-    L += ["", "## Agregar un programa", "",
-          "1. Buscá el ID exacto: `winget search <nombre>` (columna *Id*) y comprobá con `winget show --id <ID> --exact`.",
-          "2. Agregá una línea `Programa(...)` en `CATALOGO` (`bottimint/instalador.py`) y, si corresponde, su ID en un perfil.",
-          "3. Ejecutá `python scripts/generar_docs.py` y `python -m unittest discover -s tests -t .`."]
+            L += ["", f"### {tr(cat)}", "", "| Program | winget ID | Description | Note |", "|---|---|---|---|"]
+        L.append(f"| {celda(p.nombre)} | `{p.id}` | {celda(tr(p.descripcion))} | {celda(tr(p.nota) if p.nota else '')} |")
+    L += ["", "## Adding a program", "",
+          "1. Find the exact ID: `winget search <name>` (*Id* column) and check it with `winget show --id <ID> --exact`.",
+          "2. Add a `Programa(...)` line to `CATALOGO` (`bottimint/instalador.py`) and, if appropriate, its ID to a profile. Add the English text of the description to `bottimint/idiomas/en.py`.",
+          "3. Run `python scripts/generar_docs.py` and `python -m unittest discover -s tests -t .`."]
     return "\n".join(L) + "\n"
 
 

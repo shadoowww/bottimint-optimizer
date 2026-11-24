@@ -1,67 +1,64 @@
-# Seguridad
+# Security
 
-BottiMint modifica el sistema con permisos de administrador, así que la desconfianza es razonable. Este documento dice qué
-hace el programa, qué defensas tiene el código y **cómo podés comprobarlo vos mismo** sin creerle a nadie.
+BottiMint changes the system with administrator rights, so distrust is reasonable. This document explains what the program
+does, what defenses the code has, and **how you can check it yourself** without taking anyone's word for it.
 
-## Qué datos maneja
+## What data it handles
 
-- **No envía telemetría ni datos a ningún servidor.** La única actividad de red es la de `winget` al instalar o actualizar programas (y, si lo usás, el script opcional `descargar_y_ejecutar.ps1`, que habla con GitHub).
-- No hay cuentas, ni anuncios, ni «versión premium».
-- Lo que guarda queda **local**:
-  - `C:\ProgramData\BottiMint\` → sesiones (manifiestos para deshacer) e informes. Con permisos de administrador, la carpeta se restringe a **SYSTEM y Administradores**.
-  - `%APPDATA%\BottiMint\ajustes.json` → solo tu idioma y tu tema. Nada personal.
-  - Un informe de texto en el Escritorio.
+- **It sends no telemetry or data to any server.** The only network activity is `winget` when installing or updating programs (and, if you use it, the optional `descargar_y_ejecutar.ps1` script, which talks to GitHub).
+- No accounts, no ads, no "premium version".
+- What it stores stays **local**:
+  - `C:\ProgramData\BottiMint\` → sessions (manifests used to undo changes) and reports. With administrator rights the folder is restricted to **SYSTEM and Administrators**.
+  - `%APPDATA%\BottiMint\ajustes.json` → only your language and theme. Nothing personal.
+  - A text report on the Desktop.
 
-## Cómo verificar que el programa es seguro (hacelo, no confíes)
+## How to verify the program is safe (do it, don't just trust)
 
-1. **Hash SHA256.** Cada release publica `BottiMint.exe` y `BottiMint.exe.sha256`. En PowerShell:
-   `Get-FileHash .\BottiMint.exe -Algorithm SHA256` y compará con el archivo `.sha256`. Si difiere en un solo carácter, no lo ejecutes.
-2. **VirusTotal.** Subí el `.exe` a <https://www.virustotal.com> (o buscá por su hash, sin subir nada). Los `.exe` hechos con PyInstaller a veces tienen 1–3 falsos positivos de motores heurísticos; si ves muchos, no lo uses y avisá.
-3. **Procedencia (atestación de GitHub).** Los releases se compilan en GitHub Actions y quedan firmados con una *build provenance attestation*: prueba criptográfica de que ese `.exe` salió de este repositorio y de ese commit, no de la PC de nadie.
+1. **SHA256 hash.** Every release publishes `BottiMint.exe` and `BottiMint.exe.sha256`. In PowerShell:
+   `Get-FileHash .\BottiMint.exe -Algorithm SHA256` and compare with the `.sha256` file. If a single character differs, do not run it.
+2. **VirusTotal.** Upload the `.exe` to <https://www.virustotal.com> (or search by its hash without uploading anything). `.exe` files built with PyInstaller sometimes get 1–3 false positives from heuristic engines; if you see many, don't use it and report it.
+3. **Provenance (GitHub attestation).** Releases are built in GitHub Actions and carry a *build provenance attestation*: cryptographic proof that the `.exe` came from this repository and this commit, not from someone's PC.
    `gh attestation verify BottiMint.exe -R shadoowww/bottimint-optimizer`
-4. **Compilalo vos.** No hace falta confiar en el `.exe`: el programa es Python puro sin dependencias externas. `python -m bottimint` lo corre desde el código, y `scripts\BottiMint.bat` / `Compilar_exe.bat` generan el `.exe` en tu equipo. El código entero se puede leer en una tarde.
-5. **Probalo primero en una VM** con snapshot ([PRUEBAS_VM.md](PRUEBAS_VM.md)). Antes de tocar nada, el programa crea un punto de restauración de Windows y verifica que exista; si no puede, aborta sin cambiar nada.
+4. **Build it yourself.** You don't need to trust the `.exe`: the program is pure Python with no external dependencies. `python -m bottimint` runs it from source, and `scripts\BottiMint.bat` / `Compilar_exe.bat` build the `.exe` on your machine. The whole code base can be read in an afternoon.
+5. **Try it in a VM first** with a snapshot ([PRUEBAS_VM.md](PRUEBAS_VM.md)). Before touching anything, the program creates a Windows restore point and verifies it exists; if it cannot, it aborts without changing anything.
 
-## Permisos
+## Permissions
 
-- Necesita **administrador** para cambiar servicios, registro del sistema, tareas programadas y crear el punto de restauración. Sin administrador, esas tareas se **omiten** (no se fuerzan).
-- Los ajustes del usuario (publicidad, efectos visuales, Game DVR) se aplican al **usuario que ejecuta el programa**. Si se eleva con otra cuenta de administrador, esos ajustes van a esa cuenta.
+- It needs **administrator** rights to change services, system registry, scheduled tasks and to create the restore point. Without administrator rights those tasks are **skipped** (never forced).
+- User-level settings (advertising, visual effects, Game DVR) are applied to the **user running the program**. If you elevate with a different administrator account, those settings go to that account.
 
-## Defensas del código (revisión de seguridad)
+## Code defenses (security review)
 
-| Riesgo | Defensa |
+| Risk | Defense |
 |---|---|
-| **Borrado fuera de lo previsto** mediante *junctions* o enlaces simbólicos (en Windows `os.walk` entra a las junctions) | Recorrido propio que **nunca entra a enlaces ni puntos de reanálisis**; si encuentra uno, elimina el enlace y no toca su destino. Una carpeta raíz que sea enlace se ignora. |
-| **Variables de entorno manipuladas** (`TEMP` apuntando a `System32` o a Documentos) | Lista de carpetas protegidas (System32, WinSxS, Program Files, Documentos, Escritorio, Imágenes, Descargas, OneDrive…) y de raíces; las rutas se resuelven con `realpath` antes de comparar. |
-| **Secuestro de ejecutables** (un `powershell.exe` o `sc.exe` plantado en la carpeta actual o en el PATH, ejecutado como administrador) | Los comandos del sistema se lanzan por **ruta absoluta** desde `System32`. Nunca `shell=True`, siempre listas de argumentos (hay un test que lo impide). |
-| **Carpeta de datos pre-creada por otro usuario** (junction en `ProgramData`) | Se rechaza si es un enlace; con administrador se fija el propietario y se restringen los permisos (`icacls`). |
-| **Manifiesto de restauración manipulado** (alguien edita el JSON para que, al restaurar con privilegios, se toque el registro/servicios que quiera) | Al restaurar, **cada entrada se valida contra el catálogo**: el registro solo puede tocar las claves del cambio original, los servicios y tareas deben ser los del cambio, los GUID y nombres se validan con expresiones estrictas, las apps solo se registran desde `WindowsApps`. Lo que no coincide se ignora. El ID de sesión se valida (sin `..`). El manifiesto se escribe de forma **atómica**. |
-| **Inyección en PowerShell** | Todo valor interpolado pasa por `ps_str` (comillas duplicadas) y además se valida antes (nombres de paquete, rutas). |
-| **Inyección de opciones en winget** (un ID que empiece con `-`) | Los IDs deben cumplir `^[A-Za-z0-9][A-Za-z0-9._+-]*$`; todo el catálogo se prueba con ese filtro. Instalación con `--exact --source winget` (fuente oficial). |
-| **Archivo temporal predecible** (`winget export`) | Carpeta temporal privada con nombre aleatorio, borrada al terminar. |
-| **Archivo de ajustes manipulado** | Cada valor se compara con una lista cerrada (idiomas y temas); lo desconocido se ignora. |
-| **Descarga alterada** (`descargar_y_ejecutar.ps1`) | Valida `Repo`/`Tag`, solo acepta URLs de `github.com`, verifica el SHA256 **sobre el mismo manejador de archivo bloqueado contra escritura** (sin ventana entre verificar y ejecutar). |
-| **Apps críticas** | Lista explícita de apps a quitar + lista de apps protegidas que nunca se tocan (Store, Calculadora, Fotos, Terminal, Edge, Seguridad de Windows…). |
-| **Código peligroso** | Sin `eval`, `exec`, `pickle`, `os.system` ni `shell=True` (tests). Análisis estático con **bandit** en cada push: sin hallazgos de severidad media o alta. |
+| **Deleting outside the intended folders** through *junctions* or symbolic links (on Windows `os.walk` follows junctions) | Own directory walker that **never enters links or reparse points**; if it finds one it removes the link itself and leaves its target alone. A root folder that is a link is ignored. |
+| **Manipulated environment variables** (`TEMP` pointing at `System32` or Documents) | List of protected folders (System32, WinSxS, Program Files, Documents, Desktop, Pictures, Downloads, OneDrive…) and of drive roots; paths are resolved with `realpath` before comparing. |
+| **Executable hijacking** (a `powershell.exe` or `sc.exe` planted in the current folder or in PATH, run as administrator) | System commands are launched by **absolute path** from `System32`. Never `shell=True`, always argument lists (a test enforces this). |
+| **Data folder pre-created by another user** (a junction in `ProgramData`) | It is rejected if it is a link; with administrator rights the owner is set and the permissions are restricted (`icacls`). |
+| **Tampered restore manifest** (someone edits the JSON so that, when restoring with privileges, arbitrary registry keys/services get touched) | On restore, **every entry is validated against the catalog**: the registry can only touch the keys of the original change, services and tasks must be those of the change, GUIDs and names are checked with strict expressions, apps are only registered from `WindowsApps`. Anything that does not match is ignored. The session ID is validated (no `..`). The manifest is written **atomically**. |
+| **PowerShell injection** | Every interpolated value goes through `ps_str` (doubled quotes) and is also validated beforehand (package names, paths). |
+| **Option injection in winget** (an ID starting with `-`) | IDs must match `^[A-Za-z0-9][A-Za-z0-9._+-]*$`; the whole catalog is tested against that filter. Installs use `--exact --source winget` (official source). |
+| **Predictable temporary file** (`winget export`) | Private temporary folder with a random name, deleted afterwards. |
+| **Tampered settings file** | Every value is compared with a closed list (languages and themes); anything unknown is ignored. |
+| **Altered download** (`descargar_y_ejecutar.ps1`) | Validates `Repo`/`Tag`, only accepts `github.com` URLs, verifies the SHA256 **on the same write-locked file handle** (no gap between verifying and running). |
+| **Critical apps** | Explicit list of apps to remove + a list of protected apps that are never touched (Store, Calculator, Photos, Terminal, Edge, Windows Security…). |
+| **Dangerous code** | No `eval`, `exec`, `pickle`, `os.system` or `shell=True` (tests). Static analysis with **bandit** on every push: no medium or high severity findings. |
 
-Todo esto está cubierto por pruebas automáticas (`tests/test_seguridad.py`), que corren en cada push en Windows y Linux.
+All of this is covered by automated tests (`tests/test_seguridad.py`) that run on every push on Windows and Linux. The full list of what was reviewed, patched and tested is in [AUDITORIA_SEGURIDAD.md](AUDITORIA_SEGURIDAD.md).
 
-## Qué NO toca nunca
+## What it never touches
 
-Windows Defender y el Firewall (no se desactivan), Windows Update (no se desactiva), servicios de red y audio, archivos personales y «limpiadores de registro». Ver [NIVELES.md](NIVELES.md).
+Windows Defender and the Firewall (never disabled), Windows Update (never disabled), network and audio services, personal files and "registry cleaners". See [NIVELES.md](NIVELES.md).
 
-## Límites conocidos (decirlo con honestidad)
+## Known limits (stated honestly)
 
-- El `.exe` **no está firmado con un certificado de firma de código** (cuesta dinero y requiere identidad verificada). Por eso **SmartScreen puede mostrar una advertencia** y algunos antivirus pueden dar falsos positivos típicos de PyInstaller. Por eso existen el hash, la atestación y la opción de compilarlo vos.
-- Un administrador local ya tiene control total del equipo: las defensas anteriores protegen contra **usuarios sin privilegios y contra datos manipulados**, no contra alguien que ya es administrador.
-- Las apps desinstaladas y los archivos borrados **no se restauran** con la herramienta (las apps se reinstalan desde Microsoft Store; hay además un punto de restauración de Windows, que no recupera archivos personales).
-- En el nivel Extremo, desactivar servicios tiene consecuencias funcionales (impresión, Bluetooth, Xbox, búsqueda). Se explican en pantalla y hay que confirmarlas.
-- Las licencias de TeamViewer y AnyDesk **no son gratuitas para uso comercial**.
-- Las traducciones al ruso, japonés y chino están hechas con ayuda de IA y cubren la interfaz; revisiones de hablantes nativos son bienvenidas.
+- The `.exe` is **not signed with a code-signing certificate** (it costs money and requires a verified identity). That is why **SmartScreen may show a warning** and some antivirus products may give the typical PyInstaller false positives. That is why the hash, the attestation and the option to build it yourself exist.
+- A local administrator already has full control of the machine: the defenses above protect against **unprivileged users and tampered data**, not against someone who is already an administrator.
+- Uninstalled apps and deleted files are **not restored** by the tool (apps are reinstalled from the Microsoft Store; there is also a Windows restore point, which does not recover personal files).
+- At the Extreme level, disabling services has functional consequences (printing, Bluetooth, Xbox, search). They are explained on screen and must be confirmed.
+- TeamViewer and AnyDesk licenses are **not free for commercial use**.
+- The Russian, Japanese and Chinese translations were made with AI help and cover the interface; reviews by native speakers are welcome.
 
-## Reportar una vulnerabilidad
+## Reporting a vulnerability
 
-Abrí un aviso privado (Security → Report a vulnerability) en el repositorio. Evitá publicar detalles de explotación antes de que haya un arreglo.
-
-
-Detalle completo de lo revisado, parcheado y probado: [AUDITORIA_SEGURIDAD.md](AUDITORIA_SEGURIDAD.md).
+Open a private advisory (Security → Report a vulnerability) on the repository. Please avoid publishing exploitation details before a fix is available.

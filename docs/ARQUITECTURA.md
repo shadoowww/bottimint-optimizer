@@ -1,49 +1,52 @@
-# Arquitectura
+# Architecture
+
+Module, class and function names are in Spanish (as is the code base); this document explains them in English.
 
 ```text
               ┌──────────────┐
-              │   gui.py     │  interfaz (tkinter) - hilos + cola
+              │   gui.py     │  interface (tkinter) - threads + queue
               └──────┬───────┘
         ┌────────────┼───────────────┐
         ▼            ▼               ▼
   ┌───────────┐ ┌───────────┐ ┌────────────────┐
-  │ nucleo.py │ │instalador │ │  __main__.py   │ (consola)
-  │ (niveles) │ │  .py      │ └────────────────┘
+  │ nucleo.py │ │instalador │ │  __main__.py   │ (command line)
+  │ (levels)  │ │  .py      │ └────────────────┘
   └─────┬─────┘ └─────┬─────┘
         │             │
         └──────┬──────┘
                ▼
-        ┌──────────────┐        ┌────────────┐
-        │ limpieza.py  │ ◄───── │ config.py  │
-        └──────────────┘        └────────────┘
+        ┌──────────────┐
+        │ limpieza.py  │
+        └──────────────┘
 ```
 
-## Módulos
+## Modules
 
-- **`limpieza.py`**: funciones de bajo nivel. Expansión segura de rutas (descarta raíces de disco, perfil de usuario y carpetas del sistema), borrado del *contenido* de carpetas sin seguir enlaces simbólicos, papelera, `info_sistema()`, y la lista `TAREAS` (limpiezas y acciones de mantenimiento).
-- **`nucleo.py`**: el motor.
-  - `Entorno`: **única** puerta hacia Windows (registro, `sc`, PowerShell, tareas programadas, apps de la Tienda, inicio). En las pruebas se reemplaza por `EntornoFalso`.
-  - `Cambio` y sus subtipos: `CambioLimpieza`, `CambioRegistro`, `CambioServicios`, `CambioTareas`, `CambioApps`, `CambioInicio`, `CambioEnergia`, `CambioHibernacion`. Cada uno sabe **`aplica()`** (¿tiene sentido en este equipo?), **`aplicar()`** (guarda el estado previo) y **`revertir()`**.
-  - `CATALOGO`: lista ordenada de cambios. Cada uno declara su `nivel` mínimo, riesgo, texto de «qué hace» y «consecuencia», y si viene marcado por defecto (puede depender del equipo).
-  - `plan()` (vista previa), `aplicar()`, `restaurar()`, `crear_punto_restauracion()`.
-- **`instalador.py`**: `CATALOGO` de programas, `PERFILES`, y `Winget` (wrapper con `run` inyectable): `disponible`, `instalados` (vía `winget export`, JSON independiente del idioma), `existe`, `instalar` (mapea códigos de salida), `actualizar_todo`.
-- **`gui.py`**: `App` (pestañas), `ListaCheck` (tabla con casillas), `DialogoConfirmacion`. Las tareas largas corren en hilos y se comunican por una `queue`; los diálogos son métodos reemplazables para poder probar la GUI.
-- **`ajustes.py`**: idioma y tema, guardados por usuario y validados contra listas cerradas.
-- **`i18n.py` + `idiomas/`**: traducciones (la clave es el texto en español; hay fallback a inglés).
-- **`temas.py`**: paletas claro/oscuro con acento mint.
+- **`limpieza.py`** (cleanup): low-level functions. Safe path expansion (discards drive roots, the user profile and system folders), deleting the *contents* of folders without following symbolic links, recycle bin, `info_sistema()` (system info), and the `TAREAS` list (cleanups and maintenance actions).
+- **`nucleo.py`** (core): the engine.
+  - `Entorno` (environment): the **only** gateway to Windows (registry, `sc`, PowerShell, scheduled tasks, Store apps, startup). In tests it is replaced by `EntornoFalso`.
+  - `Cambio` (change) and its subtypes: `CambioLimpieza`, `CambioRegistro`, `CambioServicios`, `CambioTareas`, `CambioApps`, `CambioInicio`, `CambioEnergia`, `CambioHibernacion`. Each one knows **`aplica()`** (does it make sense on this machine?), **`aplicar()`** (saves the previous state) and **`revertir()`** (undo).
+  - `CATALOGO`: ordered list of changes. Each declares its minimum level (`nivel`), risk, "what it does" and "consequence" texts, and whether it is checked by default (it may depend on the machine).
+  - `plan()` (preview), `aplicar()`, `restaurar()`, `crear_punto_restauracion()`.
+- **`instalador.py`** (installer): program `CATALOGO`, `PERFILES` (profiles) and `Winget` (wrapper with an injectable `run`): `disponible`, `instalados` (via `winget export`, language-independent JSON), `existe`, `instalar` (maps exit codes), `actualizar_todo`.
+- **`gui.py`**: `App` (tabs), `ListaCheck` (table with checkboxes), `DialogoConfirmacion`. Long tasks run in threads and talk through a `queue`; dialogs are replaceable methods so the GUI can be tested.
+- **`widgets.py`**: Canvas-drawn rounded widgets: `BotonRedondo`, `SelectorNivel`, `Tarjeta` and `DialogoSiNo`. Tabs, Treeview rows, the Combobox and the operating-system window frame keep square corners (a tkinter/ttk limit).
+- **`ajustes.py`**: language and theme, stored per user and validated against closed lists.
+- **`i18n.py` + `idiomas/`**: translations (the key is the Spanish text; falls back to English, then to the original).
+- **`temas.py`**: light/dark palettes with a mint accent.
 
-## Flujo de `aplicar(nivel)`
+## Flow of `aplicar(nivel)`
 
-1. Verifica que haya permisos de administrador.
-2. `plan()` → lista de cambios del nivel (acumulativo) que **aplican** a este equipo, filtrada por lo que el usuario dejó marcado.
-3. **Punto de restauración**: `Enable-ComputerRestore`, baja temporalmente el límite de «uno cada 24 h», `Checkpoint-Computer`, y **verifica** con `Get-ComputerRestorePoint` que existe. Si falla → aborta sin cambios.
-4. Crea la sesión `sesiones/<AAAAMMDD_HHMMSS>/` y `manifest.json`.
-5. Por cada cambio: `aplicar()` va llenando un `estado` (valores previos) y el manifiesto **se guarda después de cada cambio**. Un error en un cambio no frena a los demás.
-6. Genera `informe.txt` (también copia al Escritorio).
+1. Checks for administrator rights.
+2. `plan()` → list of changes of the level (cumulative) that **apply** to this machine, filtered by what the user left checked.
+3. **Restore point**: `Enable-ComputerRestore`, temporarily lowers the "one every 24 h" limit, `Checkpoint-Computer`, and **verifies** with `Get-ComputerRestorePoint` that it exists. If that fails → abort with no changes.
+4. Creates the session `sesiones/<YYYYMMDD_HHMMSS>/` and `manifest.json`.
+5. For each change: `aplicar()` fills in an `estado` (previous values) and the manifest is **saved after every change**. An error in one change does not stop the others.
+6. Generates `informe.txt` (also copied to the Desktop).
 
-`restaurar()` lee el manifiesto y llama a `revertir()` en **orden inverso**.
+`restaurar()` reads the manifest and calls `revertir()` in **reverse order**.
 
-### Formato del manifiesto (resumen)
+### Manifest format (summary)
 
 ```json
 {
@@ -59,20 +62,18 @@
 }
 ```
 
-## Cómo agregar un cambio
+## How to add a change
 
-1. Elegí el subtipo adecuado (o creá uno heredando de `Cambio` con `aplica/aplicar/revertir`).
-2. Agregalo a `_catalogo()` en `nucleo.py` con `nivel`, `riesgo`, texto claro de **qué hace** y **consecuencia**, y `defecto` (bool o función del equipo).
-3. `aplicar()` debe guardar en `estado` **todo** lo necesario para revertir.
-4. Agregá una prueba en `tests/test_nucleo.py` (el test de «aplicar y restaurar deja todo igual» ya cubre cualquier cambio nuevo que no borre archivos).
-5. `python scripts/generar_docs.py`.
+1. Pick the right subtype (or create one inheriting from `Cambio` with `aplica/aplicar/revertir`).
+2. Add it to `_catalogo()` in `nucleo.py` with `nivel`, `riesgo`, clear **what it does** and **consequence** texts, and `defecto` (a bool or a function of the machine).
+3. `aplicar()` must store in `estado` **everything** needed to revert.
+4. Add a test in `tests/test_nucleo.py` (the "apply and restore leaves everything the same" test already covers any new change that does not delete files).
+5. Add the translations of the new texts in `bottimint/idiomas/` (`test_idiomas` fails if one is missing).
+6. `python scripts/generar_docs.py`.
 
-## Decisiones de diseño
+## Design decisions
 
-- **Reversibilidad antes que potencia:** no se incluyó nada que no se pueda deshacer o que sea dudoso (por ejemplo, limpiadores de registro).
-- **Un solo punto de contacto con el sistema (`Entorno`)** para poder probar toda la lógica sin Windows.
-- **Sin dependencias externas** en tiempo de ejecución: solo biblioteca estándar.
-- **Opciones según el equipo** en lugar de un único perfil fijo, para evitar que «optimizar» deje a alguien sin impresora o sin Bluetooth.
-
-## Widgets redondeados
-`bottimint/widgets.py` dibuja con Canvas: `BotonRedondo`, `SelectorNivel`, `Tarjeta` y `DialogoSiNo`. Las pestañas, filas del Treeview, el Combobox y el marco de la ventana del sistema siguen con esquinas rectas (límite de tkinter/ttk).
+- **Reversibility before power:** nothing that cannot be undone or that is dubious was included (for example, registry cleaners).
+- **A single point of contact with the system (`Entorno`)** so all the logic can be tested without Windows.
+- **No external dependencies** at runtime: standard library only.
+- **Machine-dependent options** instead of one fixed profile, so that "optimizing" does not leave someone without a printer or Bluetooth.

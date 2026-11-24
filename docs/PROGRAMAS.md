@@ -1,105 +1,105 @@
-# Catálogo de programas
+# Program catalog
 
-> Generado automáticamente desde `bottimint/instalador.py` con `python scripts/generar_docs.py`. No editar a mano.
+> Automatically generated from `bottimint/instalador.py` with `python scripts/generar_docs.py`. Do not edit by hand.
 
-Todo se instala con **winget** (fuente oficial `winget`), en silencio y con el ID exacto.
+Everything is installed with **winget** (official `winget` source), silently and with the exact ID.
 
-## Perfiles
+## Profiles
 
-### `oficina` - PC de oficina / hogar
+### `oficina` - Office / home PC
 
-Lo básico para trabajar y navegar.
+The basics for working and browsing.
 
 Google Chrome, 7-Zip, VLC, LibreOffice, SumatraPDF, WhatsApp, Zoom, AnyDesk
 
-### `gamer` - PC gamer
+### `gamer` - Gaming PC
 
-Launchers, comunicación, grabación y todos los runtimes que piden los juegos.
+Launchers, communication, recording and all the runtimes games ask for.
 
 Google Chrome, 7-Zip, VLC, Discord, Steam, Epic Games Launcher, Ubisoft Connect, EA app, OBS Studio, Visual C++ 2015-2022 (x64), Visual C++ 2015-2022 (x86), Visual C++ 2013 (x64), Visual C++ 2013 (x86), .NET Desktop Runtime 8, .NET Desktop Runtime 9, DirectX (runtime legacy)
 
-### `herramientas` - Herramientas de sistema
+### `herramientas` - System tools
 
-Utilidades de diagnóstico, edición y desarrollo.
+Diagnostic, editing and development utilities.
 
 7-Zip, Notepad++, AnyDesk, Everything, WinDirStat, CrystalDiskInfo, HWiNFO, Rufus, PowerToys, Python 3.13, Git, Visual Studio Code
 
-## Catálogo completo
+## Full catalog
 
 
-### Navegadores
+### Browsers
 
-| Programa | ID de winget | Descripción | Nota |
+| Program | winget ID | Description | Note |
 |---|---|---|---|
-| Google Chrome | `Google.Chrome` | Navegador de Google. |  |
-| Mozilla Firefox | `Mozilla.Firefox` | Navegador de Mozilla, enfocado en privacidad. |  |
-| Brave | `Brave.Brave` | Navegador con bloqueo de anuncios incluido. |  |
-| Microsoft Edge | `Microsoft.Edge` | Viene con Windows; sirve para reinstalarlo/actualizarlo. |  |
+| Google Chrome | `Google.Chrome` | Google's browser. |  |
+| Mozilla Firefox | `Mozilla.Firefox` | Mozilla's browser, focused on privacy. |  |
+| Brave | `Brave.Brave` | Browser with built-in ad blocking. |  |
+| Microsoft Edge | `Microsoft.Edge` | Ships with Windows; useful to reinstall/update it. |  |
 
-### Esenciales
+### Essentials
 
-| Programa | ID de winget | Descripción | Nota |
+| Program | winget ID | Description | Note |
 |---|---|---|---|
-| 7-Zip | `7zip.7zip` | Compresor/descompresor de archivos (zip, rar, 7z...). |  |
-| VLC | `VideoLAN.VLC` | Reproductor de video y audio que lee todo. |  |
-| Notepad++ | `Notepad++.Notepad++` | Editor de texto avanzado. |  |
-| LibreOffice | `TheDocumentFoundation.LibreOffice` | Suite de oficina gratuita (Word/Excel/PowerPoint compatibles). |  |
-| Adobe Acrobat Reader | `Adobe.Acrobat.Reader.64-bit` | Lector de PDF de Adobe. |  |
-| SumatraPDF | `SumatraPDF.SumatraPDF` | Lector de PDF liviano y rápido (alternativa a Adobe). |  |
-| WhatsApp | `WhatsApp.WhatsApp` | WhatsApp de escritorio. |  |
-| Zoom | `Zoom.Zoom` | Videollamadas y reuniones. |  |
-| Telegram | `Telegram.TelegramDesktop` | Mensajería Telegram de escritorio. |  |
-| Discord | `Discord.Discord` | Chat de voz y texto (también muy usado en gaming). |  |
+| 7-Zip | `7zip.7zip` | File compressor/extractor (zip, rar, 7z...). |  |
+| VLC | `VideoLAN.VLC` | Video and audio player that plays everything. |  |
+| Notepad++ | `Notepad++.Notepad++` | Advanced text editor. |  |
+| LibreOffice | `TheDocumentFoundation.LibreOffice` | Free office suite (Word/Excel/PowerPoint compatible). |  |
+| Adobe Acrobat Reader | `Adobe.Acrobat.Reader.64-bit` | Adobe's PDF reader. |  |
+| SumatraPDF | `SumatraPDF.SumatraPDF` | Lightweight, fast PDF reader (Adobe alternative). |  |
+| WhatsApp | `WhatsApp.WhatsApp` | WhatsApp for desktop. |  |
+| Zoom | `Zoom.Zoom` | Video calls and meetings. |  |
+| Telegram | `Telegram.TelegramDesktop` | Telegram messenger for desktop. |  |
+| Discord | `Discord.Discord` | Voice and text chat (also widely used for gaming). |  |
 
-### Utilidades
+### Utilities
 
-| Programa | ID de winget | Descripción | Nota |
+| Program | winget ID | Description | Note |
 |---|---|---|---|
-| AnyDesk | `AnyDeskSoftwareGmbH.AnyDesk` | Escritorio remoto para dar soporte a distancia. | Uso gratuito solo personal: para uso comercial/empresas requiere licencia. |
-| TeamViewer | `TeamViewer.TeamViewer` | Escritorio remoto para soporte a distancia. | Uso gratuito solo personal: para uso comercial/empresas requiere licencia. |
-| Everything | `voidtools.Everything` | Búsqueda instantánea de archivos. |  |
-| PowerToys | `Microsoft.PowerToys` | Utilidades avanzadas de Microsoft para Windows. |  |
-| WinDirStat | `WinDirStat.WinDirStat` | Muestra qué ocupa espacio en el disco. |  |
-| CrystalDiskInfo | `CrystalDewWorld.CrystalDiskInfo` | Estado de salud de discos (SMART). |  |
-| HWiNFO | `REALiX.HWiNFO` | Información y sensores de hardware (temperaturas, etc.). |  |
-| Rufus | `Rufus.Rufus` | Crea pendrives booteables (instalar Windows). |  |
-| VirtualBox | `Oracle.VirtualBox` | Máquinas virtuales. |  |
+| AnyDesk | `AnyDeskSoftwareGmbH.AnyDesk` | Remote desktop for remote support. | Free for personal use only: commercial/business use requires a license. |
+| TeamViewer | `TeamViewer.TeamViewer` | Remote desktop for remote support. | Free for personal use only: commercial/business use requires a license. |
+| Everything | `voidtools.Everything` | Instant file search. |  |
+| PowerToys | `Microsoft.PowerToys` | Advanced Microsoft utilities for Windows. |  |
+| WinDirStat | `WinDirStat.WinDirStat` | Shows what is taking up disk space. |  |
+| CrystalDiskInfo | `CrystalDewWorld.CrystalDiskInfo` | Disk health status (SMART). |  |
+| HWiNFO | `REALiX.HWiNFO` | Hardware information and sensors (temperatures, etc.). |  |
+| Rufus | `Rufus.Rufus` | Creates bootable USB drives (to install Windows). |  |
+| VirtualBox | `Oracle.VirtualBox` | Virtual machines. |  |
 
-### Desarrollo
+### Development
 
-| Programa | ID de winget | Descripción | Nota |
+| Program | winget ID | Description | Note |
 |---|---|---|---|
-| Python 3.13 | `Python.Python.3.13` | Lenguaje Python. |  |
-| Git | `Git.Git` | Control de versiones. |  |
-| Visual Studio Code | `Microsoft.VisualStudioCode` | Editor de código. |  |
-| Node.js LTS | `OpenJS.NodeJS.LTS` | Entorno de ejecución JavaScript (versión estable). |  |
+| Python 3.13 | `Python.Python.3.13` | Python language. |  |
+| Git | `Git.Git` | Version control. |  |
+| Visual Studio Code | `Microsoft.VisualStudioCode` | Code editor. |  |
+| Node.js LTS | `OpenJS.NodeJS.LTS` | JavaScript runtime (stable version). |  |
 
 ### Gaming
 
-| Programa | ID de winget | Descripción | Nota |
+| Program | winget ID | Description | Note |
 |---|---|---|---|
-| Steam | `Valve.Steam` | Tienda y launcher de Valve. |  |
-| Epic Games Launcher | `EpicGames.EpicGamesLauncher` | Tienda y launcher de Epic (juegos gratis semanales). |  |
-| Ubisoft Connect | `Ubisoft.Connect` | Launcher de juegos Ubisoft. |  |
-| EA app | `ElectronicArts.EADesktop` | Launcher de juegos de Electronic Arts. |  |
-| GOG Galaxy | `GOG.Galaxy` | Launcher de GOG (juegos sin DRM). |  |
-| Battle.net | `Blizzard.BattleNet` | Launcher de juegos Blizzard. |  |
-| OBS Studio | `OBSProject.OBSStudio` | Grabación y streaming de pantalla. |  |
+| Steam | `Valve.Steam` | Valve's store and launcher. |  |
+| Epic Games Launcher | `EpicGames.EpicGamesLauncher` | Epic's store and launcher (free weekly games). |  |
+| Ubisoft Connect | `Ubisoft.Connect` | Ubisoft game launcher. |  |
+| EA app | `ElectronicArts.EADesktop` | Electronic Arts game launcher. |  |
+| GOG Galaxy | `GOG.Galaxy` | GOG launcher (DRM-free games). |  |
+| Battle.net | `Blizzard.BattleNet` | Blizzard game launcher. |  |
+| OBS Studio | `OBSProject.OBSStudio` | Screen recording and streaming. |  |
 
 ### Runtimes
 
-| Programa | ID de winget | Descripción | Nota |
+| Program | winget ID | Description | Note |
 |---|---|---|---|
-| Visual C++ 2015-2022 (x64) | `Microsoft.VCRedist.2015+.x64` | Librerías que piden casi todos los juegos y programas. |  |
-| Visual C++ 2015-2022 (x86) | `Microsoft.VCRedist.2015+.x86` | Versión de 32 bits (programas viejos). |  |
-| Visual C++ 2013 (x64) | `Microsoft.VCRedist.2013.x64` | Juegos y programas de 2013-2015. |  |
-| Visual C++ 2013 (x86) | `Microsoft.VCRedist.2013.x86` | Versión de 32 bits. |  |
-| .NET Desktop Runtime 8 | `Microsoft.DotNet.DesktopRuntime.8` | Necesario para apps de escritorio hechas en .NET 8. |  |
-| .NET Desktop Runtime 9 | `Microsoft.DotNet.DesktopRuntime.9` | Necesario para apps de escritorio hechas en .NET 9. |  |
-| DirectX (runtime legacy) | `Microsoft.DirectX` | Librerías DirectX antiguas que piden algunos juegos viejos. |  |
+| Visual C++ 2015-2022 (x64) | `Microsoft.VCRedist.2015+.x64` | Libraries that almost all games and programs require. |  |
+| Visual C++ 2015-2022 (x86) | `Microsoft.VCRedist.2015+.x86` | 32-bit version (old programs). |  |
+| Visual C++ 2013 (x64) | `Microsoft.VCRedist.2013.x64` | Games and programs from 2013-2015. |  |
+| Visual C++ 2013 (x86) | `Microsoft.VCRedist.2013.x86` | 32-bit version. |  |
+| .NET Desktop Runtime 8 | `Microsoft.DotNet.DesktopRuntime.8` | Required for desktop apps built on .NET 8. |  |
+| .NET Desktop Runtime 9 | `Microsoft.DotNet.DesktopRuntime.9` | Required for desktop apps built on .NET 9. |  |
+| DirectX (runtime legacy) | `Microsoft.DirectX` | Old DirectX libraries that some older games require. |  |
 
-## Agregar un programa
+## Adding a program
 
-1. Buscá el ID exacto: `winget search <nombre>` (columna *Id*) y comprobá con `winget show --id <ID> --exact`.
-2. Agregá una línea `Programa(...)` en `CATALOGO` (`bottimint/instalador.py`) y, si corresponde, su ID en un perfil.
-3. Ejecutá `python scripts/generar_docs.py` y `python -m unittest discover -s tests -t .`.
+1. Find the exact ID: `winget search <name>` (*Id* column) and check it with `winget show --id <ID> --exact`.
+2. Add a `Programa(...)` line to `CATALOGO` (`bottimint/instalador.py`) and, if appropriate, its ID to a profile. Add the English text of the description to `bottimint/idiomas/en.py`.
+3. Run `python scripts/generar_docs.py` and `python -m unittest discover -s tests -t .`.

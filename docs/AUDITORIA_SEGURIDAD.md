@@ -1,59 +1,59 @@
-# Auditoría de seguridad de BottiMint
+# BottiMint security audit
 
-Este documento detalla **qué se revisó, qué se encontró, qué se parcheó y con qué prueba se verifica**. Complementa a [`SEGURIDAD.md`](SEGURIDAD.md) (resumen para usuarios).
+This document details **what was reviewed, what was found, what was patched and which test verifies it**. It complements [`SEGURIDAD.md`](SEGURIDAD.md) (the summary for users).
 
-> Honestidad primero: las pruebas de seguridad se escribieron **después** de aplicar los parches, de modo que quedan como red de seguridad permanente (regresión). No se ejecutaron exploits contra la versión anterior; los riesgos de la tabla son los que surgieron de revisar el código con mentalidad de atacante. Reproducible con `python -m unittest discover -s tests -t .`.
+> Honesty first: the security tests were written **after** the patches were applied, so they stay as a permanent regression safety net. No exploits were run against the previous version; the risks in the table are the ones that came out of reviewing the code with an attacker's mindset. Reproducible with `python -m unittest discover -s tests -t .`.
 
-## 1. Los dos tests que fallaron (y por qué no eran inyecciones)
+## 1. The two tests that failed (and why they were not injections)
 
-Durante la ronda de endurecimiento fallaron dos pruebas. Ninguna era una vulnerabilidad real:
+Two tests failed during the hardening round. Neither was a real vulnerability:
 
-| Test | Qué pasó | Causa real | Arreglo |
+| Test | What happened | Real cause | Fix |
 |---|---|---|---|
-| «no se usa `shell=True`» | El test busca esa cadena en el código y la encontró | Un **comentario** mío en `limpieza.py` contenía literalmente el texto `shell=True` | Reescribí el comentario («lista de argumentos, nunca una cadena de shell»). El código nunca usó shell |
-| Contraste del tema claro | Acento `#12a06e` sobre blanco = 3,34:1 (mínimo WCAG 4,5:1) | Problema de **accesibilidad**, no de seguridad | Acento claro `#0a7d54` (5,15:1) |
+| "`shell=True` is not used" | The test searches the code for that string and found it | A **comment** of mine in `limpieza.py` literally contained the text `shell=True` | I reworded the comment ("argument list, never a shell string"). The code never used a shell |
+| Light theme contrast | Accent `#12a06e` on white = 3.34:1 (WCAG minimum 4.5:1) | An **accessibility** problem, not a security one | Light accent `#0a7d54` (5.15:1) |
 
-Las pruebas de inyección (`PruebasInyeccion`, `PruebasManifiesto`) pasaron a la primera porque se escribieron sobre el código ya parcheado.
+The injection tests (`PruebasInyeccion`, `PruebasManifiesto`) passed on the first run because they were written against the already patched code.
 
-## 2. Riesgos revisados, parche y prueba
+## 2. Risks reviewed, patch and test
 
-| # | Riesgo | Parche | Prueba |
+| # | Risk | Patch | Test |
 |---|---|---|---|
-| 1 | **Junctions / symlinks**: la limpieza podía seguir un enlace y borrar fuera de la carpeta temporal | `_recorrer` propio; detecta `FILE_ATTRIBUTE_REPARSE_POINT (0x400)` y no entra. Se borra el enlace, nunca su destino | `PruebasEnlaces`, `PruebasJunctionReal` (solo Windows, `mklink /J` real) |
-| 2 | **Variables de entorno manipuladas** (`TEMP=C:\Windows`) | `_es_ruta_peligrosa` resuelve con `realpath` y compara con `_carpetas_protegidas` (Windows, System32, Program Files, Users raíz…) | `PruebasRutasProtegidas` |
-| 3 | **Secuestro de ejecutables** (un `reg.exe` falso en el directorio actual o en el PATH) | `resolver_exe`: rutas absolutas en `System32`; sin `shell=True`; argumentos como lista | `PruebasEjecutables` |
-| 4 | **Carpeta de datos** con enlace o permisos abiertos (otro usuario podría alterar los respaldos) | `preparar_dir_datos`: rechaza enlaces/junctions; con admin aplica `icacls` (dueño Administradores, herencia off, solo SYSTEM y Administradores) | `PruebasEnlaces` |
-| 5 | **Manifiesto de restauración alterado** (se restaura como admin: sería escalada) | Lista blanca: claves de registro, servicios, tareas, GUID y paquetes Appx validados contra el catálogo y regex; `_loc_appx_valida` limita a `WindowsApps`; ID de sesión `^\d{8}_\d{6}$`; lectura con `_leer_manifest`; guardado atómico | `PruebasManifiesto` |
-| 6 | **Inyección en PowerShell** | `ps_str` escapa comillas; nada del usuario se concatena sin pasar por ahí | `PruebasInyeccion` |
-| 7 | **Inyección por ID de winget** (`Foo --source evil`, `;`, `&`) | `id_valido` (regex estricta) antes de invocar winget | `PruebasInyeccion` |
-| 8 | **Archivos temporales predecibles** (`winget export`) | `mkdtemp` privado | `PruebasInyeccion` |
-| 9 | **Ajustes manipulados** (`ajustes.json` con idioma/tema arbitrarios) | Validación contra listas cerradas; ante dudas, valores por defecto | `PruebasAjustes` |
-| 10 | **Script de descarga** (`descargar_y_ejecutar.ps1`) | Valida `-Repo`/`-Tag`, acepta solo URLs `github.com`, hash SHA256 calculado sobre un handle bloqueado (evita cambiar el archivo entre verificar y ejecutar) | Revisión manual + bandit |
-| 11 | **Cadena de suministro** | Releases con SHA256 y atestación de procedencia (`actions/attest-build-provenance`); job `bandit` en CI | CI |
-| 12 | **Textos traducidos** que rompan marcadores o abran una vía de inyección en mensajes | `test_idiomas` verifica que cada traducción conserve los placeholders | `test_idiomas.py` |
+| 1 | **Junctions / symlinks**: cleanup could follow a link and delete outside the temp folder | Own `_recorrer` walker; detects `FILE_ATTRIBUTE_REPARSE_POINT (0x400)` and does not enter. The link is removed, never its target | `PruebasEnlaces`, `PruebasJunctionReal` (Windows only, real `mklink /J`) |
+| 2 | **Manipulated environment variables** (`TEMP=C:\Windows`) | `_es_ruta_peligrosa` resolves with `realpath` and compares against `_carpetas_protegidas` (Windows, System32, Program Files, Users root…) | `PruebasRutasProtegidas` |
+| 3 | **Executable hijacking** (a fake `reg.exe` in the current directory or PATH) | `resolver_exe`: absolute paths in `System32`; no `shell=True`; arguments as a list | `PruebasEjecutables` |
+| 4 | **Data folder** with a link or open permissions (another user could alter the backups) | `preparar_dir_datos`: rejects links/junctions; with admin rights applies `icacls` (owner Administrators, inheritance off, only SYSTEM and Administrators) | `PruebasEnlaces` |
+| 5 | **Tampered restore manifest** (it is restored as admin: that would be privilege escalation) | Allowlist: registry keys, services, tasks, GUIDs and Appx packages validated against the catalog and regexes; `_loc_appx_valida` limits to `WindowsApps`; session ID `^\d{8}_\d{6}$`; read with `_leer_manifest`; atomic save | `PruebasManifiesto` |
+| 6 | **PowerShell injection** | `ps_str` escapes quotes; nothing from the user is concatenated without going through it | `PruebasInyeccion` |
+| 7 | **Injection through winget IDs** (`Foo --source evil`, `;`, `&`) | `id_valido` (strict regex) before calling winget | `PruebasInyeccion` |
+| 8 | **Predictable temporary files** (`winget export`) | Private `mkdtemp` | `PruebasInyeccion` |
+| 9 | **Tampered settings** (`ajustes.json` with arbitrary language/theme) | Validation against closed lists; on doubt, defaults | `PruebasAjustes` |
+| 10 | **Download script** (`descargar_y_ejecutar.ps1`) | Validates `-Repo`/`-Tag`, only accepts `github.com` URLs, SHA256 computed on a locked handle (prevents swapping the file between verifying and running) | Manual review + bandit |
+| 11 | **Supply chain** | Releases with SHA256 and provenance attestation (`actions/attest-build-provenance`); `bandit` job in CI | CI |
+| 12 | **Translated texts** breaking placeholders or opening an injection path in messages | `test_idiomas` checks that every translation keeps its placeholders | `test_idiomas.py` |
 
-## 3. Análisis estático
+## 3. Static analysis
 
-`bandit` sobre `bottimint/`: **solo hallazgos de severidad baja** (uso de `subprocess` con lista de argumentos y rutas absolutas, esperado en una herramienta de sistema). Sin hallazgos medios ni altos.
+`bandit` over `bottimint/`: **only low-severity findings** (use of `subprocess` with argument lists and absolute paths, expected in a system tool). No medium or high findings.
 
-## 4. Pruebas
+## 4. Tests
 
-- 65 pruebas en total (1 omitida en Linux: la de junction real, que solo corre en Windows).
-- Las pruebas de GUI corren bajo `xvfb`; las demás, sin pantalla.
-- Cubren: enlaces, rutas peligrosas, ejecutables, inyección, manifiesto, ajustes, idiomas, contraste y la confirmación de salida.
+- 66 tests in total (1 skipped on Linux: the real-junction one, which only runs on Windows).
+- GUI tests run under `xvfb`; the rest run without a display.
+- They cover: links, dangerous paths, executables, injection, manifest, settings, languages, contrast and the exit confirmation.
 
-## 5. Límites conocidos (lo que NO se afirma)
+## 5. Known limits (what is NOT claimed)
 
-- **El .exe no está firmado** (la firma de código cuesta dinero): Windows SmartScreen puede advertir. Por eso se publican hash, atestación y se invita a verificar en VirusTotal.
-- Un **administrador local malicioso** queda fuera del modelo de amenazas: ya puede hacer todo lo que BottiMint hace.
-- Ninguna auditoría garantiza «cero vulnerabilidades». Si encontrás una, ver `SEGURIDAD.md` para reportarla.
-- Probar en una VM sigue siendo la recomendación antes de usar el nivel Extremo (`PRUEBAS_VM.md`).
+- **The .exe is not signed** (code signing costs money): Windows SmartScreen may warn. That is why the hash and the attestation are published and everyone is invited to check VirusTotal.
+- A **malicious local administrator** is outside the threat model: they can already do everything BottiMint does.
+- No audit guarantees "zero vulnerabilities". If you find one, see `SEGURIDAD.md` for how to report it.
+- Testing in a VM remains the recommendation before using the Extreme level (`PRUEBAS_VM.md`).
 
-## 6. Cómo verificar vos mismo
+## 6. How to verify it yourself
 
 ```
 python -m unittest discover -s tests -t .
 python -m bandit -r bottimint
-certutil -hashfile BottiMint.exe SHA256        # comparar con BottiMint.exe.sha256
+certutil -hashfile BottiMint.exe SHA256        # compare with BottiMint.exe.sha256
 gh attestation verify BottiMint.exe --repo shadoowww/bottimint-optimizer
 ```

@@ -1,125 +1,131 @@
 # BottiMint
 
-Herramienta para **Windows 10 / 11** para todo el mundo: limpia, optimiza por niveles (todo **reversible**) e instala el software que necesitás, desde una sola interfaz.
+🇬🇧 English · 🇦🇷 [Español](README.es.md)
 
-![Pestaña de optimización](docs/img/optimizacion.png)
+A **Windows 10 / 11** tool for everyone: it cleans, optimizes by levels (everything **reversible**) and installs the software you need, all from a single interface.
 
-> Las capturas son de ejemplo; el aspecto exacto depende del tema de Windows.
+![Optimization tab](docs/img/optimizacion.png)
 
-## Qué hace
+> Screenshots are examples; the exact look depends on your Windows theme. The interface itself is available in Spanish, English, Russian, Japanese and Chinese.
 
-| Módulo | Qué incluye |
+## What it does
+
+| Module | What it includes |
 |---|---|
-| **Optimización por niveles** | **Básico** (limpieza general) · **Profundo** (+ quitar apps y publicidad de fábrica, telemetría programada, programas de inicio) · **Extremo / Gaming** (+ servicios, procesos en segundo plano, efectos visuales, energía). Cada cambio explica **qué hace y qué consecuencia tiene**. |
-| **Restauración** | Antes de tocar nada crea un **punto de restauración de Windows** y verifica que exista (si falla, **no cambia nada**). Además guarda el estado original de cada ajuste y los deshace con un clic. |
-| **Programas** | Catálogo corto y curado (navegadores, esenciales, utilidades, desarrollo, **gaming**: Steam, Epic, Ubisoft, EA, GOG, Battle.net…, runtimes) con **perfiles** (oficina, gamer, técnico). Instala con **winget**, en silencio. |
-| **Inicio de Windows** | Lista y habilita/deshabilita programas que arrancan con la PC (reversible). |
-| **Informes** | Genera un informe con lo hecho, las consecuencias y cómo volver atrás, para guardar o compartir. |
+| **Tiered optimization** | **Basic** (general cleanup) · **Deep** (+ remove pre-installed apps and ads, scheduled telemetry, startup programs) · **Extreme / Gaming** (+ services, background processes, visual effects, power plan). Every change explains **what it does and what the consequence is**. |
+| **Restore** | Before touching anything it creates a **Windows restore point** and checks that it exists (if that fails, **nothing is changed**). It also stores the original state of each setting and undoes it with one click. |
+| **Programs** | Short, curated catalog (browsers, essentials, utilities, development, **gaming**: Steam, Epic, Ubisoft, EA, GOG, Battle.net…, runtimes) with **profiles** (office, gamer, tools). Installs silently with **winget**. |
+| **Windows startup** | Lists and enables/disables programs that start with the PC (reversible). |
+| **Reports** | Generates a report of what was done, the consequences and how to go back, to keep or share. |
 
-Detalle completo: [docs/NIVELES.md](docs/NIVELES.md) · [docs/PROGRAMAS.md](docs/PROGRAMAS.md).
+Full details: [docs/NIVELES.md](docs/NIVELES.md) · [docs/PROGRAMAS.md](docs/PROGRAMAS.md).
 
-## Cómo obtenerlo (sin pendrive)
+## How to get it (no USB stick needed)
 
-**Opción A - el `.exe` (sin instalar Python)**
-1. Entrá a **[Releases](../../releases/latest)** y bajá `BottiMint.exe` y `BottiMint.exe.sha256`.
-2. Verificá la integridad (PowerShell):
+**Option A – the `.exe` (no Python required)**
+1. Go to **[Releases](../../releases/latest)** and download `BottiMint.exe` and `BottiMint.exe.sha256`.
+2. Verify its integrity (PowerShell):
    ```powershell
-   (Get-FileHash .\BottiMint.exe -Algorithm SHA256).Hash.ToLower()   # debe coincidir con el contenido del .sha256
+   (Get-FileHash .\BottiMint.exe -Algorithm SHA256).Hash.ToLower()   # must match the contents of the .sha256 file
    ```
-3. Ejecutalo (pide permisos de administrador).
+3. Run it (it asks for administrator permissions).
 
-**Opción B - un script que descarga, verifica y ejecuta**
+**Option B – a script that downloads, verifies and runs**
 ```powershell
-# PowerShell. Leé el script antes de ejecutarlo: scripts/descargar_y_ejecutar.ps1
+# PowerShell. Read the script before running it: scripts/descargar_y_ejecutar.ps1
 irm https://raw.githubusercontent.com/shadoowww/bottimint-optimizer/main/scripts/descargar_y_ejecutar.ps1 -OutFile $env:TEMP\od.ps1
 powershell -ExecutionPolicy Bypass -File $env:TEMP\od.ps1 -Repo shadoowww/bottimint-optimizer
 ```
-Descarga la última versión, **comprueba el SHA256** y recién después la ejecuta.
+It downloads the latest version, **checks the SHA256** and only then runs it. Add `-Tag v1.1.1` to pin a version.
 
-**Opción C - desde el código (requiere Python 3.10+)**
+**Option C – from source (requires Python 3.10+)**
 ```bash
 git clone https://github.com/shadoowww/bottimint-optimizer.git
 cd bottimint-optimizer
-python -m bottimint          # interfaz gráfica (ejecutar como administrador)
+python -m bottimint          # graphical interface (run as administrator)
 ```
-O doble clic en `scripts/BottiMint.bat` (pide administrador solo).
+Or double-click `scripts/BottiMint.bat` (it requests administrator rights by itself).
 
-> **Aviso sobre SmartScreen / antivirus:** el `.exe` no está firmado digitalmente y está empaquetado con PyInstaller, por lo que Windows SmartScreen o algunos antivirus pueden mostrar una advertencia o un falso positivo. Por eso se publica el SHA256 y el código es abierto: podés auditarlo o compilarlo vos (`scripts/Compilar_exe.bat`).
+> **SmartScreen / antivirus notice:** the `.exe` is not digitally signed and is packaged with PyInstaller, so Windows SmartScreen or some antivirus products may show a warning or a false positive. That is why the SHA256 is published and the code is open: you can audit it or build it yourself (`scripts/Compilar_exe.bat`).
 
-## Uso
+## Usage
 
-### Interfaz gráfica
-1. **Inicio:** revisá los datos del equipo (RAM, disco, SSD/HDD, batería, winget, permisos).
-2. **Optimización:** elegí el nivel → leé qué hace y las **consecuencias** (leelas con calma) → revisá y ajustá la lista de cambios (las opciones riesgosas vienen desmarcadas según el equipo) → **Aplicar nivel**. Hay que tildar que el cliente entendió las consecuencias.
-3. **Restaurar una sesión…** deshace una optimización anterior.
-4. **Programas:** marcá un perfil (oficina / gamer / herramientas) o elegí a mano → **Instalar seleccionados**.
+### Graphical interface
+1. **Home:** review the machine's data (RAM, disk, SSD/HDD, battery, winget, permissions).
+2. **Optimization:** pick a level → read what it does and its **consequences** (take your time) → review and adjust the list of changes (risky options come unchecked depending on the machine) → **Apply selected changes**. You must tick that you understood the consequences. Choosing a level only shows a preview; nothing is applied until you press the button.
+3. **Restore a session…** undoes a previous optimization.
+4. **Programs:** tick a profile (office / gamer / tools) or choose by hand → **Install selected**.
 
-### Consola
+### Command line
+The command-line keywords are in Spanish (like the code):
 ```text
-python -m bottimint optimizar niveles                  # explica los 3 niveles
-python -m bottimint optimizar plan --nivel extremo     # vista previa en este equipo (no cambia nada)
+python -m bottimint optimizar niveles                  # explains the 3 levels
+python -m bottimint optimizar plan --nivel extremo     # preview on this machine (changes nothing)
 python -m bottimint optimizar aplicar --nivel profundo [--sin id1,id2] [--solo id1,id2] [--si]
-python -m bottimint optimizar sesiones
-python -m bottimint optimizar restaurar [--sesion AAAAMMDD_HHMMSS]
-python -m bottimint programas perfiles
+python -m bottimint optimizar sesiones                 # list sessions
+python -m bottimint optimizar restaurar [--sesion YYYYMMDD_HHMMSS]
+python -m bottimint programas perfiles                 # list profiles
 python -m bottimint programas instalar --perfil gamer [--ids Valve.Steam] [--si]
-python -m bottimint programas verificar                # comprueba que los IDs existan en winget
-python -m bottimint programas actualizar
+python -m bottimint programas verificar                # checks that the IDs exist in winget
+python -m bottimint programas actualizar               # update all programs
 ```
+Levels: `basico`, `profundo`, `extremo`. Profiles: `oficina`, `gamer`, `herramientas`.
 
-## Seguridad y reversibilidad
+## Security and reversibility
 
-- **Punto de restauración obligatorio** y verificado antes de cualquier cambio.
-- **Manifiesto por sesión** (`C:\ProgramData\BottiMint\sesiones\<fecha>\manifest.json`) con el estado previo de cada ajuste; se guarda tras *cada* cambio, así que sobrevive a un corte de luz.
-- **Lista de cosas que nunca toca:** Defender, Firewall, Windows Update (no se desactiva), red, audio, Microsoft Store, Calculadora, Fotos, Edge, archivos personales. No hay «limpiador de registro».
-- **No reversible por la herramienta:** archivos temporales/papelera (son descartables) y apps desinstaladas (se intenta re-registrarlas; si no, se reinstalan desde Microsoft Store).
-- No envía datos a ningún lado. La única red es la de `winget` al instalar programas.
+- **Mandatory, verified restore point** before any change.
+- **Per-session manifest** (`C:\ProgramData\BottiMint\sesiones\<date>\manifest.json`) with the previous state of each setting; it is saved after *every* change, so it survives a power cut.
+- **Things it never touches:** Defender, Firewall, Windows Update (never disabled), network, audio, Microsoft Store, Calculator, Photos, Edge, personal files. There is no "registry cleaner".
+- **Not reversible by the tool:** temporary files / recycle bin (disposable) and uninstalled apps (it tries to re-register them; otherwise reinstall from the Microsoft Store).
+- It sends no data anywhere. The only network traffic is `winget` when installing programs.
 
-Más en [docs/SEGURIDAD.md](docs/SEGURIDAD.md).
+More in [docs/SEGURIDAD.md](docs/SEGURIDAD.md) and the full audit in [docs/AUDITORIA_SEGURIDAD.md](docs/AUDITORIA_SEGURIDAD.md).
 
-## Probalo primero en una máquina virtual
+## Try it in a virtual machine first
 
-Este tipo de herramienta modifica el sistema: **probala siempre en una VM con snapshot antes de usarla en tu equipo de todos los días.** Guía paso a paso: [docs/PRUEBAS_VM.md](docs/PRUEBAS_VM.md).
+This kind of tool modifies the system: **always test it in a VM with a snapshot before using it on your everyday PC.** Step-by-step guide: [docs/PRUEBAS_VM.md](docs/PRUEBAS_VM.md).
 
-## Estructura del proyecto
+## Project structure
 
+Module and file names are in Spanish, like the code and the command line.
 ```text
 bottimint/
-  limpieza.py     # limpieza de archivos (temporales, cachés, papelera...) e info del sistema
-  nucleo.py       # motor de niveles: catálogo de cambios, punto de restauración, aplicar/restaurar
-  instalador.py   # catálogo de programas, perfiles y wrapper de winget
-  gui.py          # interfaz gráfica (tkinter)
-  ajustes.py      # idioma y tema (nada personal)
-  i18n.py         # traducciones (es, en, ru, ja, zh)
-  temas.py        # temas claro/oscuro (☀ / ☾)
-  __main__.py     # punto de entrada (GUI o consola)
-tests/            # pruebas con un Windows simulado (no tocan el sistema real)
-scripts/          # .bat, descarga desde GitHub, generador de documentación
-docs/             # documentación (NIVELES y PROGRAMAS se generan desde el código)
-.github/workflows # CI (tests) y release (compila el .exe y publica el SHA256)
+  limpieza.py     # file cleanup (temp files, caches, recycle bin...) and system info
+  nucleo.py       # levels engine: change catalog, restore point, apply/restore
+  instalador.py   # program catalog, profiles and winget wrapper
+  gui.py          # graphical interface (tkinter)
+  widgets.py      # rounded widgets (buttons, level selectors, cards, dialogs)
+  ajustes.py      # language and theme (nothing personal)
+  i18n.py         # translations (es, en, ru, ja, zh)
+  temas.py        # light/dark themes (☀ / ☾)
+  __main__.py     # entry point (GUI or command line)
+tests/            # tests against a simulated Windows (they never touch the real system)
+scripts/          # .bat files, download-from-GitHub script, documentation generator
+docs/             # documentation (NIVELES and PROGRAMAS are generated from the code)
+.github/workflows # CI (tests) and release (builds the .exe and publishes the SHA256)
 ```
-Arquitectura detallada: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+Detailed architecture: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
-## Desarrollo
+## Development
 
 ```bash
-python -m unittest discover -s tests -t .        # tests (la interfaz se prueba si hay pantalla / xvfb)
-python scripts/generar_docs.py                   # regenera docs/NIVELES.md y docs/PROGRAMAS.md
-scripts\Compilar_exe.bat                         # genera dist\BottiMint.exe (Windows)
+python -m unittest discover -s tests -t .        # tests (the GUI is tested if a display / xvfb is available)
+python scripts/generar_docs.py                   # regenerates docs/NIVELES.md and docs/PROGRAMAS.md
+scripts\Compilar_exe.bat                         # builds dist\BottiMint.exe (Windows)
 ```
-Sin dependencias externas para ejecutar (solo la biblioteca estándar).
+No external dependencies to run (standard library only).
 
-## Hoja de ruta
+## Roadmap
 
-- [ ] Capturas reales en Windows y pruebas completas en VM (Windows 10 y 11).
-- [ ] Más perfiles de instalación a pedido.
-- [ ] Firma digital del `.exe`.
-- [ ] Escaneo de seguridad básico (Defender, firewall, puertos y procesos sospechosos).
+- [ ] Real screenshots on Windows and full VM tests (Windows 10 and 11).
+- [ ] More install profiles on request.
+- [ ] Digital signature for the `.exe`.
+- [ ] Basic security scan (Defender, firewall, ports and suspicious processes).
 
-## Aviso
+## Disclaimer
 
-El software se entrega «tal cual», sin garantías (ver [LICENSE](LICENSE)). Aplicá los niveles Profundo y Extremo solo con el consentimiento del dueño del equipo y habiendo explicado las consecuencias. Los nombres de programas y marcas pertenecen a sus respectivos dueños; este proyecto no está afiliado a ellos.
+The software is provided "as is", without warranty (see [LICENSE](LICENSE)). Apply the Deep and Extreme levels only with the owner's consent and after explaining the consequences. Program and brand names belong to their respective owners; this project is not affiliated with them.
 
-## Licencia
+## License
 
 [MIT](LICENSE)
