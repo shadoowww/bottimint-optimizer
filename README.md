@@ -31,15 +31,15 @@ Detalle completo: [docs/NIVELES.md](docs/NIVELES.md) · [docs/PROGRAMAS.md](docs
 **Opción B - un script que descarga, verifica y ejecuta**
 ```powershell
 # PowerShell. Leé el script antes de ejecutarlo: scripts/descargar_y_ejecutar.ps1
-irm https://raw.githubusercontent.com/shadoowww/bottimint-pc/main/scripts/descargar_y_ejecutar.ps1 -OutFile $env:TEMP\od.ps1
-powershell -ExecutionPolicy Bypass -File $env:TEMP\od.ps1 -Repo shadoowww/bottimint-pc
+irm https://raw.githubusercontent.com/shadoowww/bottimint-optimizer/main/scripts/descargar_y_ejecutar.ps1 -OutFile $env:TEMP\od.ps1
+powershell -ExecutionPolicy Bypass -File $env:TEMP\od.ps1 -Repo shadoowww/bottimint-optimizer
 ```
 Descarga la última versión, **comprueba el SHA256** y recién después la ejecuta.
 
 **Opción C - desde el código (requiere Python 3.10+)**
 ```bash
-git clone https://github.com/shadoowww/bottimint-pc.git
-cd bottimint-pc
+git clone https://github.com/shadoowww/bottimint-optimizer.git
+cd bottimint-optimizer
 python -m bottimint          # interfaz gráfica (ejecutar como administrador)
 ```
 O doble clic en `scripts/BottiMint.bat` (pide administrador solo).

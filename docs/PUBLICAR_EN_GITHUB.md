@@ -1,6 +1,6 @@
 # Publicar BottiMint en GitHub — guía completa
 
-Usuario: **shadoowww** · Repositorio: **bottimint-pc** · URL final: `https://github.com/shadoowww/bottimint-pc`
+Usuario: **shadoowww** · Repositorio: **bottimint-optimizer** · URL final: `https://github.com/shadoowww/bottimint-optimizer`
 
 Los archivos `ci.yml` y `release.yml` de `github_workflows_para_copiar/` **son los workflows** de GitHub Actions. Hay que copiarlos a `.github/workflows/` (paso 4) para que funcionen.
 
@@ -24,13 +24,13 @@ Los archivos `ci.yml` y `release.yml` de `github_workflows_para_copiar/` **son l
 
 ## Paso 2 — Crear el repositorio vacío
 1. github.com → **+** (arriba a la derecha) → **New repository**.
-2. Repository name: `bottimint-pc`. Descripción: *Optimizador y instalador de programas para Windows 10/11 (reversible, con punto de restauración).*
+2. Repository name: `bottimint-optimizer`. Descripción: *Optimizador y instalador de programas para Windows 10/11 (reversible, con punto de restauración).*
 3. **Public**.
 4. **NO** marques «Add a README», «.gitignore» ni «license» (ya los tenés; si los marcás, el primer push da conflicto).
 5. **Create repository**.
 
 ## Paso 3 — Revisar antes de subir
-- `README.md`, `docs/` y `scripts/` ya apuntan a `shadoowww/bottimint-pc`.
+- `README.md`, `docs/` y `scripts/` ya apuntan a `shadoowww/bottimint-optimizer`.
 - `LICENSE` figura a nombre de `shadoowww` (MIT). Cambialo si querés tu nombre real.
 - Probá localmente: `python -m unittest discover -s tests -t .` (tiene que terminar en OK).
 
@@ -49,7 +49,7 @@ git add .
 git status
 git commit -m "BottiMint 1.1.0"
 git branch -M main
-git remote add origin https://github.com/shadoowww/bottimint-pc.git
+git remote add origin https://github.com/shadoowww/bottimint-optimizer.git
 git push -u origin main
 ```
 - `git status` (antes del commit) te deja ver qué se sube: no debería aparecer `__pycache__` ni `optimizador/`.
@@ -85,12 +85,12 @@ Pegá esto en las notas del release:
 ```
 1) Hash:           certutil -hashfile BottiMint.exe SHA256   (comparar con BottiMint.exe.sha256)
 2) VirusTotal:     subir BottiMint.exe a https://www.virustotal.com
-3) Procedencia:    gh attestation verify BottiMint.exe --repo shadoowww/bottimint-pc
+3) Procedencia:    gh attestation verify BottiMint.exe --repo shadoowww/bottimint-optimizer
 ```
 Instalación rápida desde otra PC (sin pendrive):
 ```
-irm https://raw.githubusercontent.com/shadoowww/bottimint-pc/main/scripts/descargar_y_ejecutar.ps1 -OutFile $env:TEMP\od.ps1
-powershell -ExecutionPolicy Bypass -File $env:TEMP\od.ps1 -Repo shadoowww/bottimint-pc
+irm https://raw.githubusercontent.com/shadoowww/bottimint-optimizer/main/scripts/descargar_y_ejecutar.ps1 -OutFile $env:TEMP\od.ps1
+powershell -ExecutionPolicy Bypass -File $env:TEMP\od.ps1 -Repo shadoowww/bottimint-optimizer
 ```
 Agregá `-Tag v1.1.0` para fijar una versión; el script verifica el hash antes de ejecutar.
 

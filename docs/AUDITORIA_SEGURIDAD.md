@@ -55,5 +55,5 @@ Las pruebas de inyección (`PruebasInyeccion`, `PruebasManifiesto`) pasaron a la
 python -m unittest discover -s tests -t .
 python -m bandit -r bottimint
 certutil -hashfile BottiMint.exe SHA256        # comparar con BottiMint.exe.sha256
-gh attestation verify BottiMint.exe --repo shadoowww/bottimint-pc
+gh attestation verify BottiMint.exe --repo shadoowww/bottimint-optimizer
 ```

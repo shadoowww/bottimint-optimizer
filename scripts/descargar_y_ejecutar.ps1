@@ -3,16 +3,16 @@
   Descarga una versión publicada de BottiMint desde GitHub, verifica su SHA256 y la ejecuta.
 
 .EJEMPLO (PowerShell)
-  powershell -ExecutionPolicy Bypass -File descargar_y_ejecutar.ps1 -Repo shadoowww/bottimint-pc
+  powershell -ExecutionPolicy Bypass -File descargar_y_ejecutar.ps1 -Repo shadoowww/bottimint-optimizer
 
   Para fijar una versión concreta (recomendado si querés repetibilidad):
-  powershell -ExecutionPolicy Bypass -File descargar_y_ejecutar.ps1 -Repo shadoowww/bottimint-pc -Tag v1.1.0
+  powershell -ExecutionPolicy Bypass -File descargar_y_ejecutar.ps1 -Repo shadoowww/bottimint-optimizer -Tag v1.1.0
 
   Solo descargar y verificar, sin ejecutar:
-  powershell -ExecutionPolicy Bypass -File descargar_y_ejecutar.ps1 -Repo shadoowww/bottimint-pc -SoloDescargar
+  powershell -ExecutionPolicy Bypass -File descargar_y_ejecutar.ps1 -Repo shadoowww/bottimint-optimizer -SoloDescargar
 
   LEÉ este script antes de ejecutarlo: es corto a propósito.
-  Si tenés la CLI de GitHub (gh), además podés verificar el origen del .exe:  gh attestation verify BottiMint.exe -R shadoowww/bottimint-pc
+  Si tenés la CLI de GitHub (gh), además podés verificar el origen del .exe:  gh attestation verify BottiMint.exe -R shadoowww/bottimint-optimizer
 #>
 param(
   [Parameter(Mandatory = $true)][string]$Repo,   # formato usuario/repositorio

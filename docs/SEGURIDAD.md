@@ -18,7 +18,7 @@ hace el programa, qué defensas tiene el código y **cómo podés comprobarlo vo
    `Get-FileHash .\BottiMint.exe -Algorithm SHA256` y compará con el archivo `.sha256`. Si difiere en un solo carácter, no lo ejecutes.
 2. **VirusTotal.** Subí el `.exe` a <https://www.virustotal.com> (o buscá por su hash, sin subir nada). Los `.exe` hechos con PyInstaller a veces tienen 1–3 falsos positivos de motores heurísticos; si ves muchos, no lo uses y avisá.
 3. **Procedencia (atestación de GitHub).** Los releases se compilan en GitHub Actions y quedan firmados con una *build provenance attestation*: prueba criptográfica de que ese `.exe` salió de este repositorio y de ese commit, no de la PC de nadie.
-   `gh attestation verify BottiMint.exe -R shadoowww/bottimint-pc`
+   `gh attestation verify BottiMint.exe -R shadoowww/bottimint-optimizer`
 4. **Compilalo vos.** No hace falta confiar en el `.exe`: el programa es Python puro sin dependencias externas. `python -m bottimint` lo corre desde el código, y `scripts\BottiMint.bat` / `Compilar_exe.bat` generan el `.exe` en tu equipo. El código entero se puede leer en una tarde.
 5. **Probalo primero en una VM** con snapshot ([PRUEBAS_VM.md](PRUEBAS_VM.md)). Antes de tocar nada, el programa crea un punto de restauración de Windows y verifica que exista; si no puede, aborta sin cambiar nada.
 
