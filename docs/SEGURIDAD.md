@@ -5,7 +5,7 @@ does, what defenses the code has, and **how you can check it yourself** without 
 
 ## What data it handles
 
-- **It sends no telemetry or data to any server.** The only network activity is `winget` when installing or updating programs (and, if you use it, the optional `descargar_y_ejecutar.ps1` script, which talks to GitHub).
+- **It sends no telemetry or data to any server.** The only network activity is `winget` when installing or updating programs (and, only if you press **Install winget** and it is missing, the download of the App Installer from Microsoft's servers; and, if you use it, the optional `descargar_y_ejecutar.ps1` script, which talks to GitHub).
 - No accounts, no ads, no "premium version".
 - What it stores stays **local**:
   - `C:\ProgramData\BottiMint\` → sessions (manifests used to undo changes) and reports. With administrator rights the folder is restricted to **SYSTEM and Administrators**.
@@ -38,6 +38,7 @@ does, what defenses the code has, and **how you can check it yourself** without 
 | **Tampered restore manifest** (someone edits the JSON so that, when restoring with privileges, arbitrary registry keys/services get touched) | On restore, **every entry is validated against the catalog**: the registry can only touch the keys of the original change, services and tasks must be those of the change, GUIDs and names are checked with strict expressions, apps are only registered from `WindowsApps`. Anything that does not match is ignored. The session ID is validated (no `..`). The manifest is written **atomically**. |
 | **PowerShell injection** | Every interpolated value goes through `ps_str` (doubled quotes) and is also validated beforehand (package names, paths). |
 | **Option injection in winget** (an ID starting with `-`) | IDs must match `^[A-Za-z0-9][A-Za-z0-9._+-]*$`; the whole catalog is tested against that filter. Installs use `--exact --source winget` (official source). |
+| **Installing winget from the internet** | Only after an explicit confirmation. Fixed URLs (`aka.ms` and `github.com/microsoft/...`), nothing from the user or from the network is mixed into the script, a private temporary folder, Windows verifies the package signature on install and the publisher (`CN=Microsoft Corporation`) is checked afterwards. A test forbids any other host. |
 | **Predictable temporary file** (`winget export`) | Private temporary folder with a random name, deleted afterwards. |
 | **Tampered settings file** | Every value is compared with a closed list (languages and themes); anything unknown is ignored. |
 | **Altered download** (`descargar_y_ejecutar.ps1`) | Validates `Repo`/`Tag`, only accepts `github.com` URLs, verifies the SHA256 **on the same write-locked file handle** (no gap between verifying and running). |

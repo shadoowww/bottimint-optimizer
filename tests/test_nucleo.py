@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 import unittest
@@ -53,6 +54,40 @@ class PruebasNucleo(unittest.TestCase):
         env = EntornoFalso(tempfile.mkdtemp())
         b, p, e = (set(x["id"] for x in nucleo.plan(n, env)) for n in nucleo.ORDEN)
         self.assertTrue(b < p < e)
+
+    def test_extremo_quita_animaciones_deja_fondo_negro_y_conserva_cleartype(self):
+        env = EntornoFalso(tempfile.mkdtemp())
+        sesion = nucleo.aplicar("extremo", env, ["anim_ui", "fondo_negro", "reg_visual"], emitir=lambda s: None)
+        for clave, get, _s, _v, deseado in nucleo.SPI_AJUSTES:
+            self.assertEqual(env.spi[get], deseado, clave)
+        self.assertEqual(env.spi[0x004A], 1, "el suavizado de letras debe quedar ACTIVO")
+        self.assertEqual(env.spi[0x200A], 2, "debe quedar ClearType")
+        self.assertEqual(env.reg[("HKCU", r"Control Panel\Desktop", "WallPaper")][0], "")
+        self.assertEqual(env.reg[("HKCU", r"Control Panel\Colors", "Background")][0], "0 0 0")
+        self.assertEqual(env.fondos[-1], ("", (0, 0, 0)))
+        self.assertTrue(nucleo.restaurar(env, sesion, emitir=lambda s: None))
+        self.assertEqual(env.reg[("HKCU", r"Control Panel\Desktop", "WallPaper")][0], "C:\\Users\\x\\foto.jpg")
+        self.assertEqual(env.fondos[-1], ("C:\\Users\\x\\foto.jpg", (10, 20, 30)))
+        self.assertEqual(env.spi[0x103E], 1)
+        self.assertEqual(env.spi[0x200A], 1)
+
+    def test_manifest_manipulado_no_cambia_ajustes_ajenos_ni_pone_fondos_raros(self):
+        env = EntornoFalso(tempfile.mkdtemp())
+        sesion = nucleo.aplicar("extremo", env, ["anim_ui", "fondo_negro"], emitir=lambda s: None)
+        ruta = os.path.join(env.base_dir, "sesiones", sesion, "manifest.json")
+        with open(ruta, encoding="utf-8") as f:
+            m = json.load(f)
+        for c in m["cambios"]:
+            if c["id"] == "anim_ui":
+                c["estado"]["spi"].append({"clave": "algo_inventado", "valor": 1})
+                c["estado"]["spi"].append({"clave": "menu_anim", "valor": 99})
+        with open(ruta, "w", encoding="utf-8") as f:
+            json.dump(m, f)
+        env.reg[("HKCU", r"Control Panel\Desktop", "WallPaper")] = (r"\\atacante\share\x.jpg", 1)  # el registro dice una ruta UNC
+        nucleo.restaurar(env, sesion, emitir=lambda s: None)
+        self.assertEqual(env.spi[0x1002], 1, "un valor inválido del manifiesto no se aplica")
+        for ruta_fondo, _c in env.fondos:
+            self.assertFalse(ruta_fondo.startswith("\\\\"), "nunca se aplica una ruta de red como fondo")
 
     def test_manifest_se_guarda_y_lista_sesiones(self):
         env = EntornoFalso(tempfile.mkdtemp())

@@ -172,6 +172,7 @@ class App(tk.Tk):
         self.plan_actual: List[dict] = []
         self.instalados: set = set()
         self._deteccion_inicial = False
+        self.winget_ok: Optional[bool] = None
         self._res_inicial: Optional[tuple] = None
         self._lineas_log: List[str] = []
         self.botones: List[BotonRedondo] = []
@@ -412,6 +413,7 @@ class App(tk.Tk):
         self._boton(bs, tr("Abrir «Restaurar sistema» de Windows"), lambda: self.env.run(["rstrui.exe"]), bloquea=False).pack(side="left")
         self._boton(bs, tr("Abrir carpeta de informes"), self._abrir_informes, bloquea=False).pack(side="left", padx=6)
         self.btn_admin = self._boton(bs, tr("Reabrir como administrador"), self._reabrir_admin, bloquea=False)
+        self.btn_winget = self._boton(bs, tr("Instalar winget"), self._instalar_winget, "accion")
         ttk.Separator(f).grid(row=fila + 1, column=0, columnspan=2, sticky="ew", pady=14)
         ttk.Label(f, text=tr("BottiMint no envía ningún dato: funciona sin conexión salvo para instalar programas (winget), "
                              "y antes de cambiar nada crea un punto de restauración de Windows."),
@@ -454,7 +456,9 @@ class App(tk.Tk):
         v["Tipo de disco"].set(equipo.get("media") or tr("no detectado"))
         v["Batería"].set(tr("Sí (notebook)") if equipo.get("bateria") else tr("No (escritorio)"))
         v["Impresoras"].set(str(equipo.get("impresoras", "?")))
-        v["winget"].set(tr("Disponible") if winget_ok else tr("NO disponible (instalá «Instalador de aplicaciones» desde Microsoft Store)"))
+        self.winget_ok = bool(winget_ok)
+        v["winget"].set(tr("Disponible") if winget_ok else tr("NO disponible (se instala con el botón «Instalar winget»)"))
+        self._actualizar_winget_ui()
         v["Permisos"].set(tr("Administrador") if admin else tr("SIN administrador"))
         if not admin:
             self.lbl_admin.configure(text=tr("Sin permisos de administrador: los cambios del sistema se omiten"))
@@ -671,6 +675,11 @@ class App(tk.Tk):
         for k, v in instalador.PERFILES.items():
             BotonRedondo(top, self.pal, tr(v["titulo"]), lambda k=k: self._marcar_perfil(k)).pack(side="left", padx=4)
         BotonRedondo(top, self.pal, tr("Limpiar selección"), lambda: self.lista_prog.marcar_todo(False)).pack(side="left", padx=12)
+        self.fr_top_prog = top
+        self.fr_winget = ttk.Frame(f)
+        ttk.Label(self.fr_winget, text="⚠ " + tr("winget no está instalado en este equipo: sin él no se pueden instalar programas."),
+                  style="Sub.TLabel").pack(side="left")
+        self._boton(self.fr_winget, tr("Instalar winget"), self._instalar_winget, "accion").pack(side="left", padx=10)
         tarj_prog = Tarjeta(f, self.pal, fondo=self.pal["panel"], alto=220)
         tarj_prog.pack(fill="both", expand=True, pady=8)
         self.lista_prog = ListaCheck(tarj_prog.cuerpo, [("cat", tr("Categoría"), 110), ("nombre", tr("Programa"), 230), ("estado", tr("Estado"), 100),
@@ -685,6 +694,39 @@ class App(tk.Tk):
         self._boton(bs, tr("Verificar IDs del catálogo"), self._verificar_ids).pack(side="left")
         self._boton(bs, tr("INSTALAR SELECCIONADOS"), self._instalar, "accion").pack(side="right")
         self._pintar_programas()
+        self._actualizar_winget_ui()
+
+    def _actualizar_winget_ui(self) -> None:
+        """Muestra el botón/aviso de instalar winget solo si falta."""
+        try:
+            if self.winget_ok is False:
+                self.btn_winget.pack(side="left", padx=6)
+                self.fr_winget.pack(fill="x", pady=(0, 8), before=self.fr_top_prog)
+            else:
+                self.btn_winget.pack_forget()
+                self.fr_winget.pack_forget()
+        except (AttributeError, tk.TclError):
+            pass
+
+    def _instalar_winget(self) -> None:
+        if self.busy:
+            return
+        texto = tr("winget («Instalador de aplicaciones» de Microsoft) no está en este equipo.\n\n"
+                   "BottiMint puede instalarlo ahora: primero intenta registrarlo y, si no está, lo descarga de los servidores oficiales de Microsoft "
+                   "(github.com/microsoft y aka.ms, unos 20 MB) y Windows comprueba su firma.\n\nHace falta conexión a internet. ¿Instalarlo ahora?")
+        if self.preguntar(tr("Instalar winget"), texto, tr("Instalar ahora"), tr("Cancelar")):
+            self._tarea(lambda: self.wg.instalar_winget(self.log), self._tras_instalar_winget)
+
+    def _tras_instalar_winget(self, ok) -> None:
+        if ok:
+            self.winget_ok = True
+            if self._res_inicial:
+                self._res_inicial = (self._res_inicial[0], self._res_inicial[1], True)
+            self._aplicar_info()
+            self.aviso(tr("Instalar winget"), tr("winget quedó instalado. Ya podés instalar programas."))
+            self._detectar_instalados()
+        else:
+            self.aviso(tr("Instalar winget"), tr("No se pudo instalar winget. Probá instalar «Instalador de aplicaciones» desde Microsoft Store. Mirá el registro para ver el detalle."), "warn")
 
     def _pintar_programas(self) -> None:
         filas = []
@@ -717,6 +759,8 @@ class App(tk.Tk):
         ids = self.lista_prog.marcados()
         if not ids:
             return self.aviso(tr("Programas"), tr("No hay programas marcados."))
+        if self.winget_ok is False:
+            return self._instalar_winget()
         if not self.env.is_admin():
             return self.aviso(tr("Permisos"), tr("Hace falta ejecutar como administrador para instalar."), "warn")
         notas = [f"  - {instalador.POR_ID[i].nombre}: {tr(instalador.POR_ID[i].nota)}" for i in ids if instalador.POR_ID[i].nota]

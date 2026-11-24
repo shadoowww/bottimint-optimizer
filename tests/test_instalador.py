@@ -19,6 +19,31 @@ class PruebasInstalador(unittest.TestCase):
             for i in perfil["ids"]:
                 self.assertIn(i, instalador.POR_ID)
 
+    def test_instalar_winget_registrandolo_si_ya_venia_con_windows(self):
+        run = WingetFalso(presente=False, registra=True)
+        self.assertTrue(instalador.Winget(run, tempfile.mkdtemp()).instalar_winget(lambda m: None))
+        self.assertFalse(any("msixbundle" in " ".join(c) for c in run.log), "no hace falta descargar si alcanza con registrarlo")
+
+    def test_instalar_winget_descargandolo_si_no_esta(self):
+        run = WingetFalso(presente=False, descarga_ok=True)
+        self.assertTrue(instalador.Winget(run, tempfile.mkdtemp()).instalar_winget(lambda m: None))
+        self.assertTrue(any("msixbundle" in " ".join(c) for c in run.log))
+
+    def test_instalar_winget_informa_si_falla(self):
+        run, msgs = WingetFalso(presente=False), []
+        self.assertFalse(instalador.Winget(run, tempfile.mkdtemp()).instalar_winget(msgs.append))
+        self.assertTrue(any("Microsoft Store" in m for m in msgs))
+
+    def test_script_de_winget_solo_usa_servidores_oficiales_de_microsoft(self):
+        import re
+        urls = re.findall(r"https://([^/\s\"']+)(/[^\s\"']*)", instalador.SCRIPT_INSTALAR_WINGET)
+        self.assertGreaterEqual(len(urls), 3)
+        for host, ruta in urls:
+            self.assertIn(host, ("aka.ms", "github.com"))
+            if host == "github.com":
+                self.assertTrue(ruta.startswith("/microsoft/"), ruta)
+        self.assertIn("CN=Microsoft Corporation", instalador.SCRIPT_INSTALAR_WINGET)
+
     def test_perfiles_combinados_sin_duplicados(self):
         ids = instalador.ids_de(["gamer", "oficina"])
         self.assertEqual(len(ids), len(set(ids)))

@@ -27,6 +27,7 @@ Uso (consola, como administrador):
 
 """
 import argparse
+import ctypes
 import datetime
 import fnmatch
 import json
@@ -94,14 +95,15 @@ NIVELES: Dict[str, dict] = {
             "Desactiva servicios innecesarios (telemetría, fax, mapas, modo demo, seguimiento de vínculos...).",
             "Opcionales según el equipo: SysMain, búsqueda de Windows, cola de impresión, Bluetooth, servicios Xbox.",
             "Impide que las apps de la Tienda corran en segundo plano y quita Widgets/Noticias.",
-            "Modo Juego activo, grabación en segundo plano (Game DVR) desactivada, efectos visuales mínimos.",
+            "Modo Juego activo y grabación en segundo plano (Game DVR) desactivada.",
+            "Quita todas las animaciones de Windows y deja el escritorio en negro sólido (sin imagen de fondo), conservando el suavizado de letras (ClearType) para que el texto se vea nítido.",
             "Plan de energía de alto rendimiento (solo PC de escritorio por defecto).",
         ],
         "consecuencias": [
             "Sin cola de impresión no se puede imprimir; sin Bluetooth no andan auriculares/mouse inalámbricos; sin servicios Xbox no andan Game Pass ni juegos de la Tienda de Microsoft.",
             "Sin la búsqueda de Windows, buscar archivos desde el Explorador/Inicio es más lento.",
             "Algunas apps (Correo, Alarmas) no actualizan ni notifican en segundo plano.",
-            "Las ventanas ya no tienen animaciones ni transparencias.",
+            "Las ventanas ya no tienen animaciones ni transparencias, y el escritorio queda en negro sin imagen de fondo.",
             "Si querés volver a usar algo de lo anterior, se restaura en un clic desde la herramienta.",
         ],
         "reversibilidad": "Todo se deshace con 'restaurar' (guarda el estado original de cada servicio y ajuste) y además existe el punto de restauración de Windows.",
@@ -150,6 +152,42 @@ class Entorno:
             with winreg.OpenKey(self._hives[hive], path, 0, winreg.KEY_SET_VALUE | winreg.KEY_WOW64_64KEY) as k:
                 winreg.DeleteValue(k, name)
         except OSError:
+            pass
+
+    # --- ajustes de la interfaz (SystemParametersInfo) y fondo de escritorio ---
+    def spi_get(self, accion: int) -> Optional[int]:
+        """Lee un ajuste booleano/numérico de la interfaz; None si no se puede (o no es Windows)."""
+        if not base.IS_WIN:
+            return None
+        v = ctypes.c_uint(0)
+        try:
+            ok = ctypes.windll.user32.SystemParametersInfoW(accion, 0, ctypes.byref(v), 0)  # type: ignore[attr-defined]
+        except (OSError, AttributeError):
+            return None
+        return int(v.value) if ok else None
+
+    def spi_set(self, accion: int, valor: int, via: str = "pv") -> bool:
+        """Cambia un ajuste y lo guarda en el perfil (SPIF_UPDATEINIFILE | SPIF_SENDCHANGE).
+        `via`: 'pv' = el valor va en pvParam (la mayoría); 'ui' = va en uiParam (suavizado de fuentes)."""
+        if not base.IS_WIN:
+            return False
+        try:
+            f = ctypes.windll.user32.SystemParametersInfoW  # type: ignore[attr-defined]
+            ok = f(accion, valor, None, 0x3) if via == "ui" else f(accion, 0, ctypes.c_void_p(valor), 0x3)
+        except (OSError, AttributeError):
+            return False
+        return bool(ok)
+
+    def fondo_aplicar(self, ruta: str, color: Tuple[int, int, int]) -> None:
+        """Pone el color de escritorio y el fondo (ruta vacía = sin imagen) y lo refresca al instante."""
+        if not base.IS_WIN:
+            return
+        r, g, b = color
+        try:
+            cols = (ctypes.c_uint32 * 1)(r | (g << 8) | (b << 16))
+            ctypes.windll.user32.SetSysColors(1, (ctypes.c_int * 1)(1), cols)  # type: ignore[attr-defined]  # COLOR_BACKGROUND
+            ctypes.windll.user32.SystemParametersInfoW(0x14, 0, ruta, 0x3)  # type: ignore[attr-defined]  # SPI_SETDESKWALLPAPER
+        except (OSError, AttributeError):
             pass
 
     # --- comandos ---
@@ -318,6 +356,77 @@ class CambioRegistro(Cambio):
                 env.reg_del(p["hive"], p["path"], p["name"])
             n += 1
         return f"{n} ajustes restaurados"
+
+
+# Ajustes de interfaz que se cambian con SystemParametersInfo (se aplican al instante y quedan guardados).
+# (clave, SPI_GET, SPI_SET, vía del valor, valor deseado). Los dos últimos NO apagan nada: dejan ACTIVO el suavizado
+# de letras (ClearType) para que, sin animaciones, el texto siga viéndose nítido.
+SPI_AJUSTES = [
+    ("efectos_ui", 0x103E, 0x103F, "pv", 0),
+    ("menu_anim", 0x1002, 0x1003, "pv", 0),
+    ("menu_fade", 0x1012, 0x1013, "pv", 0),
+    ("combo_anim", 0x1004, 0x1005, "pv", 0),
+    ("lista_suave", 0x1006, 0x1007, "pv", 0),
+    ("seleccion_fade", 0x1014, 0x1015, "pv", 0),
+    ("tooltip_anim", 0x1016, 0x1017, "pv", 0),
+    ("tooltip_fade", 0x1018, 0x1019, "pv", 0),
+    ("sombra_cursor", 0x101A, 0x101B, "pv", 0),
+    ("anim_cliente", 0x1042, 0x1043, "pv", 0),
+    ("suavizado_letras", 0x004A, 0x004B, "ui", 1),
+    ("cleartype", 0x200A, 0x200B, "pv", 2),
+]
+_SPI_POR_CLAVE = {a[0]: a for a in SPI_AJUSTES}
+_RE_RUTA_FONDO = re.compile(r"^(?:[A-Za-z]:\\[^<>\"|?*\x00-\x1f]{0,240})?$")  # "" (sin imagen) o ruta local de unidad
+_RE_COLOR = re.compile(r"^(\d{1,3}) (\d{1,3}) (\d{1,3})$")
+
+
+class CambioAnimaciones(Cambio):
+    """Quita animaciones y desvanecimientos de Windows y deja activo el suavizado de letras."""
+
+    def aplica(self, env):
+        ok = env.spi_get(0x103E) is not None
+        return ok, "" if ok else "no se pueden leer los efectos de la interfaz en este equipo"
+
+    def aplicar(self, env, emitir, estado):
+        previos = estado.setdefault("spi", [])
+        hechos = 0
+        for clave, get, set_, via, deseado in SPI_AJUSTES:
+            v = env.spi_get(get)
+            if v is None:
+                continue
+            previos.append({"clave": clave, "valor": int(v)})
+            if v != deseado and env.spi_set(set_, deseado, via):
+                hechos += 1
+        return f"{hechos} efectos ajustados"
+
+    def revertir(self, env, estado):
+        n = 0
+        for p in reversed(estado.get("spi", [])):
+            a = _SPI_POR_CLAVE.get(p.get("clave"))
+            if not a or p.get("valor") not in (0, 1, 2):
+                continue  # el manifiesto pide algo que este cambio nunca toca: se ignora
+            if env.spi_set(a[2], int(p["valor"]), a[3]):
+                n += 1
+        return f"{n} efectos restaurados"
+
+
+class CambioFondoNegro(CambioRegistro):
+    """Escritorio en negro sólido, sin imagen de fondo. Reversible: devuelve la imagen y el color originales."""
+
+    def aplicar(self, env, emitir, estado):
+        super().aplicar(env, emitir, estado)
+        env.fondo_aplicar("", (0, 0, 0))
+        return "Fondo de escritorio en negro sólido"
+
+    def revertir(self, env, estado):
+        r = super().revertir(env, estado)
+        ex, ruta, _ = env.reg_get("HKCU", r"Control Panel\Desktop", "WallPaper")
+        ruta = ruta if ex and isinstance(ruta, str) and _RE_RUTA_FONDO.match(ruta) else ""
+        ex2, col, _ = env.reg_get("HKCU", r"Control Panel\Colors", "Background")
+        m = _RE_COLOR.match(col) if ex2 and isinstance(col, str) else None
+        color = tuple(min(int(x), 255) for x in m.groups()) if m else (0, 0, 0)
+        env.fondo_aplicar(ruta, color)  # type: ignore[arg-type]
+        return r + " (fondo original restaurado)"
 
 
 class CambioServicios(Cambio):
@@ -641,11 +750,24 @@ def _catalogo() -> List[Cambio]:
                        [("HKLM", r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers", "HwSchMode", REG_DWORD, 2)],
                        riesgo="medio", defecto=False),
         CambioRegistro("reg_visual", "extremo", "Efectos visuales", "Efectos visuales mínimos",
-                       "Apaga transparencias y animaciones de ventanas y barra de tareas.",
+                       "Apaga transparencias, animaciones de ventanas y de la barra de tareas, la vista previa de ventanas (Aero Peek) y el retraso de los menús.",
                        "La interfaz se ve más 'plana', sin efectos de transición. Se nota al cerrar sesión y volver a entrar.",
                        [("HKCU", W + r"\Themes\Personalize", "EnableTransparency", REG_DWORD, 0),
                         ("HKCU", r"Control Panel\Desktop\WindowMetrics", "MinAnimate", REG_SZ, "0"),
-                        ("HKCU", W + r"\Explorer\Advanced", "TaskbarAnimations", REG_DWORD, 0)]),
+                        ("HKCU", W + r"\Explorer\Advanced", "TaskbarAnimations", REG_DWORD, 0),
+                        ("HKCU", W + r"\Explorer\Advanced", "ListviewAlphaSelect", REG_DWORD, 0),
+                        ("HKCU", W + r"\Explorer\VisualEffects", "VisualFXSetting", REG_DWORD, 3),
+                        ("HKCU", r"Software\Microsoft\Windows\DWM", "EnableAeroPeek", REG_DWORD, 0),
+                        ("HKCU", r"Control Panel\Desktop", "MenuShowDelay", REG_SZ, "0")]),
+        CambioAnimaciones("anim_ui", "extremo", "Efectos visuales", "Quitar todas las animaciones de Windows",
+                          "Apaga animaciones y desvanecimientos de menús, ventanas, listas y cuadros de ayuda, y deja activo el suavizado de letras (ClearType) para que el texto siga nítido.",
+                          "La interfaz responde al instante pero se ve más 'seca'. Se aplica en el momento, sin reiniciar."),
+        CambioFondoNegro("fondo_negro", "extremo", "Efectos visuales", "Fondo de escritorio negro sólido",
+                         "Quita la imagen de fondo y deja el escritorio en negro sólido: nada que dibujar ni mantener en memoria.",
+                         "Perdés el fondo de pantalla actual (al restaurar vuelve el original). Los iconos del escritorio se siguen viendo igual.",
+                         [("HKCU", r"Control Panel\Desktop", "WallPaper", REG_SZ, ""),
+                          ("HKCU", r"Control Panel\Colors", "Background", REG_SZ, "0 0 0"),
+                          ("HKCU", W + r"\Explorer\Wallpapers", "BackgroundType", REG_DWORD, 1)]),
         CambioEnergia("energia", "extremo", "Energía", "Plan de energía: Alto rendimiento",
                       "Evita que el procesador baje de frecuencia para ahorrar energía.",
                       "Más consumo y calor. En notebooks reduce mucho la autonomía de la batería.",

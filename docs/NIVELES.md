@@ -82,7 +82,8 @@ Before applying any of them a **Windows restore point** is created and verified;
 - Disables unnecessary services (telemetry, fax, maps, demo mode, link tracking...).
 - Optional depending on the machine: SysMain, Windows Search, print spooler, Bluetooth, Xbox services.
 - Stops Store apps from running in the background and removes Widgets/News.
-- Game Mode on, background recording (Game DVR) off, minimal visual effects.
+- Game Mode on and background recording (Game DVR) off.
+- Removes all Windows animations and leaves the desktop solid black (no background image), keeping font smoothing (ClearType) so text stays sharp.
 - High-performance power plan (desktop PCs only by default).
 
 **Consequences to keep in mind**
@@ -90,12 +91,12 @@ Before applying any of them a **Windows restore point** is created and verified;
 - Without the print spooler you can't print; without Bluetooth, wireless headsets/mice don't work; without Xbox services, Game Pass and Microsoft Store games don't work.
 - Without Windows Search, finding files from Explorer/Start is slower.
 - Some apps (Mail, Alarms) don't update or notify in the background.
-- Windows no longer have animations or transparency.
+- Windows no longer have animations or transparency, and the desktop is solid black with no background image.
 - If you want to use something from the above again, it is restored with one click from the tool.
 
 **Reversibility:** Everything is undone with 'restore' (it stores the original state of every service and setting), and the Windows restore point also exists.
 
-### Changes introduced by this level (16)
+### Changes introduced by this level (18)
 
 | Change | Group | Risk | Reversible | Checked by default | What it does | Consequence |
 |---|---|---|---|---|---|---|
@@ -112,7 +113,9 @@ Before applying any of them a **Windows restore point** is created and verified;
 | **Block Store apps in the background**<br>`reg_segundo_plano` | Background processes | 🟠 medium | yes | yes | Stops Store apps from running in the background and removes Widgets/News. | Apps like Mail, Alarms or Weather don't update or notify while closed. Widgets disappears. |
 | **Game Mode on and no background recording**<br>`reg_gaming` | Gaming | 🟢 low | yes | yes | Turns on Game Mode and turns off Game DVR (automatic background recording). | Win+G no longer records clips automatically. Better performance and fewer processes while gaming. Applies to the current user. |
 | **Hardware-accelerated GPU scheduling (HAGS)**<br>`reg_hags` | Gaming | 🟠 medium | yes | no | Turns on HAGS. May improve latency on recent GPUs (NVIDIA 10 series+, AMD RX 5000+). | Requires a reboot. With some drivers/games it causes crashes or worse performance: test it and revert if that happens. |
-| **Minimal visual effects**<br>`reg_visual` | Visual effects | 🟢 low | yes | yes | Turns off transparency and animations of windows and the taskbar. | The interface looks more 'flat', without transition effects. You notice it after signing out and back in. |
+| **Minimal visual effects**<br>`reg_visual` | Visual effects | 🟢 low | yes | yes | Turns off transparency, window and taskbar animations, window previews (Aero Peek) and the menu delay. | The interface looks more 'flat', without transition effects. You notice it after signing out and back in. |
+| **Remove all Windows animations**<br>`anim_ui` | Visual effects | 🟢 low | yes | yes | Turns off animations and fades of menus, windows, lists and tooltips, and keeps font smoothing (ClearType) on so text stays sharp. | The interface responds instantly but looks more 'plain'. Applied immediately, no restart needed. |
+| **Solid black desktop background**<br>`fondo_negro` | Visual effects | 🟢 low | yes | yes | Removes the background image and leaves the desktop solid black: nothing to draw or keep in memory. | You lose the current wallpaper (the original comes back on restore). Desktop icons look the same. |
 | **Power plan: High performance**<br>`energia` | Power | 🟠 medium | yes | depends on the machine | Prevents the processor from lowering its frequency to save power. | More power use and heat. On laptops it greatly reduces battery life. |
 | **Disable hibernation and fast startup**<br>`hibernacion` | Power | 🟢 low | yes | no | Deletes hiberfil.sys (frees gigabytes = size of the RAM) and disables fast startup. | You can't hibernate and boot may be a few seconds slower. Useful if disk space is short. |
 

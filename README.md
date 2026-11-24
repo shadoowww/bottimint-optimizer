@@ -1,6 +1,6 @@
 # BottiMint
 
-🇬🇧 English · 🇦🇷 [Español](README.es.md)
+🇺🇸 English · 🇦🇷 [Español](README.es.md)
 
 A **Windows 10 / 11** tool for everyone: it cleans, optimizes by levels (everything **reversible**) and installs the software you need, all from a single interface.
 
@@ -12,15 +12,15 @@ A **Windows 10 / 11** tool for everyone: it cleans, optimizes by levels (everyth
 
 | Module | What it includes |
 |---|---|
-| **Tiered optimization** | **Basic** (general cleanup) · **Deep** (+ remove pre-installed apps and ads, scheduled telemetry, startup programs) · **Extreme / Gaming** (+ services, background processes, visual effects, power plan). Every change explains **what it does and what the consequence is**. |
+| **Tiered optimization** | **Basic** (general cleanup) · **Deep** (+ remove pre-installed apps and ads, scheduled telemetry, startup programs) · **Extreme / Gaming** (+ services, background processes, no animations, solid black desktop, power plan). Every change explains **what it does and what the consequence is**. |
 | **Restore** | Before touching anything it creates a **Windows restore point** and checks that it exists (if that fails, **nothing is changed**). It also stores the original state of each setting and undoes it with one click. |
-| **Programs** | Short, curated catalog (browsers, essentials, utilities, development, **gaming**: Steam, Epic, Ubisoft, EA, GOG, Battle.net…, runtimes) with **profiles** (office, gamer, tools). Installs silently with **winget**. |
+| **Programs** | Short, curated catalog (browsers, essentials, utilities, development, **gaming**: Steam, Epic, Ubisoft, EA, GOG, Battle.net…, runtimes) with **profiles** (office, gamer, tools). Installs silently with **winget** (and can install winget for you if it is missing). |
 | **Windows startup** | Lists and enables/disables programs that start with the PC (reversible). |
 | **Reports** | Generates a report of what was done, the consequences and how to go back, to keep or share. |
 
 Full details: [docs/NIVELES.md](docs/NIVELES.md) · [docs/PROGRAMAS.md](docs/PROGRAMAS.md).
 
-## How to get it (no USB stick needed)
+## How to install
 
 **Option A – the `.exe` (no Python required)**
 1. Go to **[Releases](../../releases/latest)** and download `BottiMint.exe` and `BottiMint.exe.sha256`.
@@ -77,13 +77,9 @@ Levels: `basico`, `profundo`, `extremo`. Profiles: `oficina`, `gamer`, `herramie
 - **Per-session manifest** (`C:\ProgramData\BottiMint\sesiones\<date>\manifest.json`) with the previous state of each setting; it is saved after *every* change, so it survives a power cut.
 - **Things it never touches:** Defender, Firewall, Windows Update (never disabled), network, audio, Microsoft Store, Calculator, Photos, Edge, personal files. There is no "registry cleaner".
 - **Not reversible by the tool:** temporary files / recycle bin (disposable) and uninstalled apps (it tries to re-register them; otherwise reinstall from the Microsoft Store).
-- It sends no data anywhere. The only network traffic is `winget` when installing programs.
+- It sends no data anywhere. The only network traffic is `winget` when installing programs (and, only if you press **Install winget**, the download of winget from Microsoft's official servers).
 
-More in [docs/SEGURIDAD.md](docs/SEGURIDAD.md) and the full audit in [docs/AUDITORIA_SEGURIDAD.md](docs/AUDITORIA_SEGURIDAD.md).
-
-## Try it in a virtual machine first
-
-This kind of tool modifies the system: **always test it in a VM with a snapshot before using it on your everyday PC.** Step-by-step guide: [docs/PRUEBAS_VM.md](docs/PRUEBAS_VM.md).
+More in [docs/SEGURIDAD.md](docs/SEGURIDAD.md) and the full audit in [docs/AUDITORIA_SEGURIDAD.md](docs/AUDITORIA_SEGURIDAD.md). If you prefer to see it in action first, there is a [virtual machine testing guide](docs/PRUEBAS_VM.md).
 
 ## Project structure
 

@@ -165,4 +165,11 @@ T = {
     'APLICAR CAMBIOS MARCADOS ({n})': '应用已选更改 ({n})',
     '{n} de {total} cambios marcados': '共 {total} 项，已选 {n} 项',
     'Elegir un nivel no cambia nada: solo muestra qué se haría. Marcá lo que quieras y confirmá con el botón.': '选择级别不会更改任何内容，只会显示将要执行的操作。勾选所需项目后，点击按钮确认。',
+    'Instalar winget': '安装 winget',
+    'Instalar ahora': '立即安装',
+    'winget no está instalado en este equipo: sin él no se pueden instalar programas.': '此电脑未安装 winget，没有它无法安装程序。',
+    'NO disponible (se instala con el botón «Instalar winget»)': '不可用（点击“安装 winget”按钮即可安装）',
+    'winget («Instalador de aplicaciones» de Microsoft) no está en este equipo.\n\nBottiMint puede instalarlo ahora: primero intenta registrarlo y, si no está, lo descarga de los servidores oficiales de Microsoft (github.com/microsoft y aka.ms, unos 20 MB) y Windows comprueba su firma.\n\nHace falta conexión a internet. ¿Instalarlo ahora?': '此电脑上没有 winget（Microsoft 的“应用安装程序”）。\n\nBottiMint 现在可以安装它：先尝试注册，若不存在则从 Microsoft 官方服务器（github.com/microsoft 和 aka.ms，约 20 MB）下载，并由 Windows 校验签名。\n\n需要联网。现在安装吗？',
+    'winget quedó instalado. Ya podés instalar programas.': 'winget 已安装，现在可以安装程序了。',
+    'No se pudo instalar winget. Probá instalar «Instalador de aplicaciones» desde Microsoft Store. Mirá el registro para ver el detalle.': '无法安装 winget。请尝试从 Microsoft Store 安装“应用安装程序”。详情见日志。',
 }

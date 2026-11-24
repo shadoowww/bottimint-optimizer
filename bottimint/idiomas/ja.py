@@ -165,4 +165,11 @@ T = {
     'APLICAR CAMBIOS MARCADOS ({n})': '選択した変更を適用 ({n})',
     '{n} de {total} cambios marcados': '{total}件中{n}件を選択',
     'Elegir un nivel no cambia nada: solo muestra qué se haría. Marcá lo que quieras y confirmá con el botón.': 'レベルを選んでも何も変わりません。実行内容を表示するだけです。項目にチェックを入れ、ボタンで確定してください。',
+    'Instalar winget': 'winget をインストール',
+    'Instalar ahora': '今すぐインストール',
+    'winget no está instalado en este equipo: sin él no se pueden instalar programas.': 'このPCには winget がありません。winget がないとプログラムをインストールできません。',
+    'NO disponible (se instala con el botón «Instalar winget»)': '利用不可（「winget をインストール」ボタンで導入できます）',
+    'winget («Instalador de aplicaciones» de Microsoft) no está en este equipo.\n\nBottiMint puede instalarlo ahora: primero intenta registrarlo y, si no está, lo descarga de los servidores oficiales de Microsoft (github.com/microsoft y aka.ms, unos 20 MB) y Windows comprueba su firma.\n\nHace falta conexión a internet. ¿Instalarlo ahora?': 'winget（Microsoft の「アプリ インストーラー」）がこのPCにありません。\n\nBottiMint が今インストールできます。まず登録を試し、なければ Microsoft の公式サーバー（github.com/microsoft と aka.ms、約20 MB）からダウンロードし、Windows が署名を確認します。\n\nインターネット接続が必要です。今すぐインストールしますか？',
+    'winget quedó instalado. Ya podés instalar programas.': 'winget をインストールしました。プログラムをインストールできます。',
+    'No se pudo instalar winget. Probá instalar «Instalador de aplicaciones» desde Microsoft Store. Mirá el registro para ver el detalle.': 'winget をインストールできませんでした。Microsoft Store から「アプリ インストーラー」を入れてみてください。詳細はログをご覧ください。',
 }

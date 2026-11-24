@@ -131,6 +131,28 @@ def _cod(c: int) -> int:
     return c & 0xFFFFFFFF
 
 
+# Instala «Instalador de aplicaciones» (winget) desde los servidores oficiales de Microsoft. Solo URLs fijas (nada del
+# usuario se mezcla con el script). Windows verifica la firma del paquete al instalarlo; después se comprueba el editor.
+SCRIPT_INSTALAR_WINGET = r"""
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$arq = switch ($env:PROCESSOR_ARCHITECTURE) { 'ARM64' { 'arm64' } 'x86' { 'x86' } default { 'x64' } }
+$dir = Join-Path ([IO.Path]::GetTempPath()) ('bottimint_winget_' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $dir | Out-Null
+try {
+  $vc = Join-Path $dir 'vclibs.appx'; $xaml = Join-Path $dir 'xaml.appx'; $wg = Join-Path $dir 'winget.msixbundle'
+  Invoke-WebRequest -UseBasicParsing -Uri "https://aka.ms/Microsoft.VCLibs.$arq.14.00.Desktop.appx" -OutFile $vc
+  Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.$arq.appx" -OutFile $xaml
+  Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle' -OutFile $wg
+  Add-AppxPackage -Path $wg -DependencyPath $vc, $xaml
+  $p = Get-AppxPackage -Name Microsoft.DesktopAppInstaller
+  if (-not $p -or $p.Publisher -notlike 'CN=Microsoft Corporation*') { throw 'El paquete instalado no es de Microsoft' }
+  Write-Output 'winget instalado.'
+} finally { Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+"""
+
+
 class Winget:
     """Envuelve winget. `run` es inyectable para poder probar sin Windows."""
 
@@ -147,6 +169,23 @@ class Winget:
         self.run(["powershell", "-NoProfile", "-Command",
                   "Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe"], 180)
         return self.disponible()
+
+    def instalar_winget(self, emitir: Callable[[str], None] = print) -> bool:
+        """Deja winget funcionando: 1) lo registra si ya venía con Windows; 2) si no, lo descarga de Microsoft."""
+        if self.disponible():
+            return True
+        emitir("Registrando «Instalador de aplicaciones» (winget)...")
+        if self.intentar_reparar():
+            emitir("winget quedó disponible.")
+            return True
+        emitir("No estaba en el equipo: descargando desde los servidores oficiales de Microsoft (puede tardar)...")
+        cod, out = self.run(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                             "-Command", SCRIPT_INSTALAR_WINGET], 900)
+        if cod != 0 and out:
+            emitir(out[-600:])
+        ok = self.disponible() or self.intentar_reparar()
+        emitir("winget instalado." if ok else "No se pudo instalar winget. Instalá «Instalador de aplicaciones» desde Microsoft Store.")
+        return ok
 
     def instalados(self) -> set:
         """IDs instalados, vía `winget export` (JSON: no depende del idioma de Windows)."""
@@ -327,7 +366,7 @@ def main() -> None:
         print(out[-2000:])
     elif a.cmd == "winget":
         print("winget disponible." if wg.disponible() else
-              ("winget reparado." if wg.intentar_reparar() else "winget NO disponible: instalá 'Instalador de aplicaciones' desde Microsoft Store."))
+              ("winget instalado." if wg.instalar_winget() else "winget NO disponible: instalá 'Instalador de aplicaciones' desde Microsoft Store."))
     else:
         ap.print_help()
 

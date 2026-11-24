@@ -411,6 +411,23 @@ T = {
     'APLICAR CAMBIOS MARCADOS ({n})': 'APPLY SELECTED CHANGES ({n})',
     '{n} de {total} cambios marcados': '{n} of {total} changes selected',
     'Elegir un nivel no cambia nada: solo muestra qué se haría. Marcá lo que quieras y confirmá con el botón.': 'Choosing a level changes nothing: it only shows what would be done. Tick what you want and confirm with the button.',
+    'Instalar winget': 'Install winget',
+    'Instalar ahora': 'Install now',
+    'winget no está instalado en este equipo: sin él no se pueden instalar programas.': 'winget is not installed on this PC: programs cannot be installed without it.',
+    'NO disponible (se instala con el botón «Instalar winget»)': 'NOT available (use the “Install winget” button)',
+    'winget («Instalador de aplicaciones» de Microsoft) no está en este equipo.\n\nBottiMint puede instalarlo ahora: primero intenta registrarlo y, si no está, lo descarga de los servidores oficiales de Microsoft (github.com/microsoft y aka.ms, unos 20 MB) y Windows comprueba su firma.\n\nHace falta conexión a internet. ¿Instalarlo ahora?': 'winget (Microsoft’s “App Installer”) is not on this PC.\n\nBottiMint can install it now: it first tries to register it and, if it is missing, downloads it from Microsoft’s official servers (github.com/microsoft and aka.ms, about 20 MB) and Windows checks its signature.\n\nAn internet connection is required. Install it now?',
+    'winget quedó instalado. Ya podés instalar programas.': 'winget is installed. You can now install programs.',
+    'No se pudo instalar winget. Probá instalar «Instalador de aplicaciones» desde Microsoft Store. Mirá el registro para ver el detalle.': 'Could not install winget. Try installing “App Installer” from the Microsoft Store. See the log for details.',
+    'Apaga transparencias, animaciones de ventanas y de la barra de tareas, la vista previa de ventanas (Aero Peek) y el retraso de los menús.': 'Turns off transparency, window and taskbar animations, window previews (Aero Peek) and the menu delay.',
+    'Quitar todas las animaciones de Windows': 'Remove all Windows animations',
+    'Apaga animaciones y desvanecimientos de menús, ventanas, listas y cuadros de ayuda, y deja activo el suavizado de letras (ClearType) para que el texto siga nítido.': 'Turns off animations and fades of menus, windows, lists and tooltips, and keeps font smoothing (ClearType) on so text stays sharp.',
+    "La interfaz responde al instante pero se ve más 'seca'. Se aplica en el momento, sin reiniciar.": "The interface responds instantly but looks more 'plain'. Applied immediately, no restart needed.",
+    'Fondo de escritorio negro sólido': 'Solid black desktop background',
+    'Quita la imagen de fondo y deja el escritorio en negro sólido: nada que dibujar ni mantener en memoria.': 'Removes the background image and leaves the desktop solid black: nothing to draw or keep in memory.',
+    'Perdés el fondo de pantalla actual (al restaurar vuelve el original). Los iconos del escritorio se siguen viendo igual.': 'You lose the current wallpaper (the original comes back on restore). Desktop icons look the same.',
+    'Modo Juego activo y grabación en segundo plano (Game DVR) desactivada.': 'Game Mode on and background recording (Game DVR) off.',
+    'Quita todas las animaciones de Windows y deja el escritorio en negro sólido (sin imagen de fondo), conservando el suavizado de letras (ClearType) para que el texto se vea nítido.': 'Removes all Windows animations and leaves the desktop solid black (no background image), keeping font smoothing (ClearType) so text stays sharp.',
+    'Las ventanas ya no tienen animaciones ni transparencias, y el escritorio queda en negro sin imagen de fondo.': 'Windows no longer have animations or transparency, and the desktop is solid black with no background image.',
 }
 
 # Mensajes dinámicos del motor que se reconocen por patrón

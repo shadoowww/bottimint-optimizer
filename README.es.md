@@ -1,6 +1,6 @@
 # BottiMint
 
-🇬🇧 [English](README.md) · 🇦🇷 Español
+🇺🇸 [English](README.md) · 🇦🇷 Español
 
 > La documentación principal está en inglés. Este README en español es un resumen de entrada; el detalle está en `docs/` (en inglés).
 
@@ -22,7 +22,7 @@ Herramienta para **Windows 10 / 11** para todo el mundo: limpia, optimiza por ni
 
 Detalle completo: [docs/NIVELES.md](docs/NIVELES.md) · [docs/PROGRAMAS.md](docs/PROGRAMAS.md) (en inglés).
 
-## Cómo obtenerlo (sin pendrive)
+## Cómo instalarlo
 
 **Opción A - el `.exe` (sin instalar Python)**
 1. Entrá a **[Releases](../../releases/latest)** y bajá `BottiMint.exe` y `BottiMint.exe.sha256`.
@@ -79,11 +79,7 @@ python -m bottimint programas actualizar
 - **No reversible por la herramienta:** archivos temporales/papelera (son descartables) y apps desinstaladas (se intenta re-registrarlas; si no, se reinstalan desde Microsoft Store).
 - No envía datos a ningún lado. La única red es la de `winget` al instalar programas.
 
-Más en [docs/SEGURIDAD.md](docs/SEGURIDAD.md).
-
-## Probalo primero en una máquina virtual
-
-Este tipo de herramienta modifica el sistema: **probala siempre en una VM con snapshot antes de usarla en tu equipo de todos los días.** Guía paso a paso: [docs/PRUEBAS_VM.md](docs/PRUEBAS_VM.md).
+Más en [docs/SEGURIDAD.md](docs/SEGURIDAD.md). Si preferís verlo funcionando antes, hay una [guía de pruebas en máquina virtual](docs/PRUEBAS_VM.md).
 
 ## Estructura del proyecto
 

@@ -30,7 +30,9 @@ The injection tests (`PruebasInyeccion`, `PruebasManifiesto`) passed on the firs
 | 9 | **Tampered settings** (`ajustes.json` with arbitrary language/theme) | Validation against closed lists; on doubt, defaults | `PruebasAjustes` |
 | 10 | **Download script** (`descargar_y_ejecutar.ps1`) | Validates `-Repo`/`-Tag`, only accepts `github.com` URLs, SHA256 computed on a locked handle (prevents swapping the file between verifying and running) | Manual review + bandit |
 | 11 | **Supply chain** | Releases with SHA256 and provenance attestation (`actions/attest-build-provenance`); `bandit` job in CI | CI |
-| 12 | **Translated texts** breaking placeholders or opening an injection path in messages | `test_idiomas` checks that every translation keeps its placeholders | `test_idiomas.py` |
+| 12 | **Installing winget** (new in 1.2.0): downloading code from the internet | Explicit confirmation; fixed Microsoft URLs only; Windows enforces the package signature and the publisher is verified after installing | `test_script_de_winget_solo_usa_servidores_oficiales_de_microsoft` |
+| 13 | **Tampered manifest for the new visual changes** (animations, wallpaper) | Only the known UI settings and values 0–2 are restored; the wallpaper path must be empty or a local drive path (no network paths) | `test_manifest_manipulado_no_cambia_ajustes_ajenos_ni_pone_fondos_raros` |
+| 14 | **Translated texts** breaking placeholders or opening an injection path in messages | `test_idiomas` checks that every translation keeps its placeholders | `test_idiomas.py` |
 
 ## 3. Static analysis
 
@@ -38,7 +40,7 @@ The injection tests (`PruebasInyeccion`, `PruebasManifiesto`) passed on the firs
 
 ## 4. Tests
 
-- 66 tests in total (1 skipped on Linux: the real-junction one, which only runs on Windows).
+- 74 tests in total (1 skipped on Linux: the real-junction one, which only runs on Windows).
 - GUI tests run under `xvfb`; the rest run without a display.
 - They cover: links, dangerous paths, executables, injection, manifest, settings, languages, contrast and the exit confirmation.
 

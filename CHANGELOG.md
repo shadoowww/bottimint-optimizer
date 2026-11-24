@@ -2,6 +2,16 @@
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semantic versioning.
 
+## [1.2.0] - 2026-11-24
+
+### Added
+- **Install winget from the app:** if winget is missing, the Home and Programs tabs show a clear notice with an **Install winget** button (and pressing *Install selected* offers it too). It first tries to register the App Installer that ships with Windows; if it is not there, it downloads it from Microsoft's official servers (fixed `github.com/microsoft` and `aka.ms` URLs), Windows verifies the package signature and the publisher is checked afterwards. It always asks for confirmation first; nothing is downloaded automatically.
+- **Extreme / Gaming:** new change *Remove all Windows animations* (menus, windows, lists, tooltips, fades, smooth scrolling; applied instantly) that **keeps ClearType font smoothing on** so text stays sharp, and new change *Solid black desktop background* (no wallpaper image; the original wallpaper and color come back on restore).
+- *Minimal visual effects* now also turns off Aero Peek, list-selection fade and the menu delay.
+- `python -m bottimint programas winget` now installs winget when it is missing.
+- README: US flag for the English link, "How to install" heading, and the standalone VM section replaced by a short pointer in the Security section.
+- Tests: winget installation (register / download / failure / official hosts only), animations + black background (apply, restore, tampered manifest). 74 in total.
+
 ## [1.1.1] - 2026-11-24
 
 ### Changed

@@ -165,4 +165,11 @@ T = {
     'APLICAR CAMBIOS MARCADOS ({n})': 'ПРИМЕНИТЬ ВЫБРАННЫЕ ИЗМЕНЕНИЯ ({n})',
     '{n} de {total} cambios marcados': 'Выбрано изменений: {n} из {total}',
     'Elegir un nivel no cambia nada: solo muestra qué se haría. Marcá lo que quieras y confirmá con el botón.': 'Выбор уровня ничего не меняет: он лишь показывает, что будет сделано. Отметьте нужное и подтвердите кнопкой.',
+    'Instalar winget': 'Установить winget',
+    'Instalar ahora': 'Установить сейчас',
+    'winget no está instalado en este equipo: sin él no se pueden instalar programas.': 'winget не установлен на этом ПК: без него нельзя устанавливать программы.',
+    'NO disponible (se instala con el botón «Instalar winget»)': 'НЕ доступен (кнопка «Установить winget»)',
+    'winget («Instalador de aplicaciones» de Microsoft) no está en este equipo.\n\nBottiMint puede instalarlo ahora: primero intenta registrarlo y, si no está, lo descarga de los servidores oficiales de Microsoft (github.com/microsoft y aka.ms, unos 20 MB) y Windows comprueba su firma.\n\nHace falta conexión a internet. ¿Instalarlo ahora?': 'winget («Установщик приложений» Microsoft) отсутствует на этом ПК.\n\nBottiMint может установить его сейчас: сначала пробует зарегистрировать, а если его нет — скачивает с официальных серверов Microsoft (github.com/microsoft и aka.ms, около 20 МБ), и Windows проверяет подпись.\n\nНужен доступ в интернет. Установить сейчас?',
+    'winget quedó instalado. Ya podés instalar programas.': 'winget установлен. Теперь можно устанавливать программы.',
+    'No se pudo instalar winget. Probá instalar «Instalador de aplicaciones» desde Microsoft Store. Mirá el registro para ver el detalle.': 'Не удалось установить winget. Попробуйте установить «Установщик приложений» из Microsoft Store. Подробности смотрите в журнале.',
 }

@@ -45,6 +45,41 @@ class PruebasGui(unittest.TestCase):
         self.app = None
         gc.collect()  # que las variables de Tk se liberen en el hilo principal, no en un hilo de trabajo
 
+    def test_sin_winget_ofrece_instalarlo_y_el_aviso_desaparece_al_instalar(self):
+        from bottimint import gui, instalador, ajustes
+        run = WingetFalso(presente=False, registra=True)
+        app = gui.App(EntornoFalso(tempfile.mkdtemp()), instalador.Winget(run, tempfile.mkdtemp()), ruta_ajustes=self.ruta_aj)
+        try:
+            app.preguntar = lambda *a, **k: True
+            app.aviso = lambda *a, **k: None
+            self.assertTrue(self.esperar(app, lambda: not app.busy and app.plan_actual))
+            self.assertFalse(app.winget_ok)
+            self.assertTrue(app.fr_winget.winfo_manager(), "el aviso con el botón debe verse")
+            self.assertTrue(app.btn_winget.winfo_manager())
+            app._instalar_winget()
+            self.assertTrue(self.esperar(app, lambda: app.winget_ok and not app.busy))
+            self.assertFalse(app.fr_winget.winfo_manager(), "con winget instalado el aviso desaparece")
+            self.assertFalse(app.btn_winget.winfo_manager())
+        finally:
+            app.destroy()
+            gc.collect()
+
+    def test_instalar_programas_sin_winget_ofrece_instalarlo_en_vez_de_solo_avisar(self):
+        from bottimint import gui, instalador
+        run = WingetFalso(presente=False, registra=True)
+        app = gui.App(EntornoFalso(tempfile.mkdtemp()), instalador.Winget(run, tempfile.mkdtemp()), ruta_ajustes=self.ruta_aj)
+        try:
+            preguntas = []
+            app.preguntar = lambda titulo, *a, **k: preguntas.append(titulo) or False
+            app.aviso = lambda *a, **k: None
+            self.assertTrue(self.esperar(app, lambda: not app.busy and app.plan_actual))
+            app.lista_prog.marcar(["7zip.7zip"], True)
+            app._instalar()
+            self.assertIn("Instalar winget", preguntas)
+        finally:
+            app.destroy()
+            gc.collect()
+
     def test_arranca_y_carga_plan_e_instalados(self):
         self.assertTrue(self.app.lista_opt.marcados())
         self.assertIn("google.chrome", self.app.instalados)
