@@ -19,3 +19,6 @@ Informe_*.txt
 /LEEME.txt
 /Compilar_exe.bat
 /_versiones_anteriores/
+
+# material privado de publicación (no se sube al repositorio)
+/_privado/

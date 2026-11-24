@@ -1,6 +1,6 @@
 # BottiMint
 
-Herramienta para **Windows 10 / 11** para todo el mundo: limpia, optimiza por niveles (todo **reversible**) e instala el software que necesita cada cliente, desde una sola interfaz.
+Herramienta para **Windows 10 / 11** para todo el mundo: limpia, optimiza por niveles (todo **reversible**) e instala el software que necesitás, desde una sola interfaz.
 
 ![Pestaña de optimización](docs/img/optimizacion.png)
 
@@ -107,7 +107,7 @@ python -m unittest discover -s tests -t .        # tests (la interfaz se prueba 
 python scripts/generar_docs.py                   # regenera docs/NIVELES.md y docs/PROGRAMAS.md
 scripts\Compilar_exe.bat                         # genera dist\BottiMint.exe (Windows)
 ```
-Sin dependencias externas para ejecutar (solo la biblioteca estándar). Publicación en GitHub y releases: [docs/PUBLICAR_EN_GITHUB.md](docs/PUBLICAR_EN_GITHUB.md).
+Sin dependencias externas para ejecutar (solo la biblioteca estándar).
 
 ## Hoja de ruta
 
