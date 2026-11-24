@@ -50,6 +50,19 @@ class PruebasGui(unittest.TestCase):
         self.assertIn("google.chrome", self.app.instalados)
         self.assertEqual(self.app.vars_info["Permisos"].get(), "Administrador")
 
+    def test_elegir_nivel_no_aplica_nada_y_el_boton_sigue_a_las_casillas(self):
+        app = self.app
+        app.pedir_confirmacion = lambda *a, **k: self.fail("elegir un nivel no debe pedir ni aplicar nada")
+        app.nivel.set("profundo")
+        app._cambio_nivel()
+        self.assertTrue(self.esperar(app, lambda: not app.busy and app.lista_opt.marcados()))
+        self.assertEqual(str(app.btn_aplicar.cget("state")), "normal")
+        app.lista_opt.marcar_todo(False)
+        self.assertEqual(str(app.btn_aplicar.cget("state")), "disabled")
+        self.assertIn("0 de", app.lbl_cuenta.cget("text"))
+        app.lista_opt.marcar_todo(True)
+        self.assertEqual(str(app.btn_aplicar.cget("state")), "normal")
+
     def test_cambiar_de_nivel_recarga_el_plan(self):
         n_basico = len(self.app.plan_actual)
         self.app.nivel.set("extremo")

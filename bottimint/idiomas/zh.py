@@ -15,7 +15,6 @@ T = {
     'Actualizar todos los programas': '更新所有程序',
     'Actualizar vista previa': '刷新预览',
     'Administrador': '管理员',
-    'Analizando el equipo para el nivel {nivel}...': '正在为级别“{nivel}”分析此电脑...',
     'Aplicar': '应用',
     'Avisos de licencia:': '许可证提示:',
     'BottiMint - INFORME DE OPTIMIZACIÓN': 'BottiMint - 优化报告',
@@ -162,4 +161,8 @@ T = {
     'Sí': '是',
     'No': '否',
     'Aceptar': '确定',
+    'Revisando el equipo (solo lectura, no se modifica nada) para el nivel {nivel}...': '正在为级别“{nivel}”检查此电脑（只读，不会更改任何内容）...',
+    'APLICAR CAMBIOS MARCADOS ({n})': '应用已选更改 ({n})',
+    '{n} de {total} cambios marcados': '共 {total} 项，已选 {n} 项',
+    'Elegir un nivel no cambia nada: solo muestra qué se haría. Marcá lo que quieras y confirmá con el botón.': '选择级别不会更改任何内容，只会显示将要执行的操作。勾选所需项目后，点击按钮确认。',
 }

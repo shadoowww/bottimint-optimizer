@@ -16,6 +16,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). V
 
 - **Botón «Salir»** (⏻) con confirmación; avisa de forma especial si hay una tarea en curso. También confirma al cerrar con la X.
 - **Interfaz redondeada**: botones, selectores de nivel, tarjetas y diálogos con esquinas redondeadas (`bottimint/widgets.py`). Diálogos propios con tema claro/oscuro.
+- **Optimización:** el botón «Aplicar cambios marcados (N)» ahora está sobre la lista de casillas (siempre visible), con contador de cambios marcados; se desactiva si no hay nada marcado. Elegir un nivel solo muestra la vista previa (lectura), nunca aplica.
 - Documento `docs/AUDITORIA_SEGURIDAD.md` y guía de publicación actualizada.
 
 ### Seguridad

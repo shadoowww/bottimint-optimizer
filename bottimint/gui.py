@@ -26,8 +26,9 @@ NIVEL_LEMA = {"basico": "Limpieza general", "profundo": "Limpieza + quitar lo qu
 class ListaCheck(ttk.Frame):
     """Tabla con casillas de verificación (clic en la columna ✔ o barra espaciadora)."""
 
-    def __init__(self, master, columnas: List[tuple], pal: dict, altura: int = 10, al_elegir: Optional[Callable[[str], None]] = None):
+    def __init__(self, master, columnas: List[tuple], pal: dict, altura: int = 10, al_elegir: Optional[Callable[[str], None]] = None, al_cambiar: Optional[Callable[[], None]] = None):
         super().__init__(master, style="Panel.TFrame")
+        self.al_cambiar = al_cambiar
         self.ids = [c[0] for c in columnas]
         self.marcado: Dict[str, bool] = {}
         self.bloqueado: set = set()
@@ -65,6 +66,11 @@ class ListaCheck(ttk.Frame):
                 self.bloqueado.add(iid)
             self.tree.insert("", "end", iid=iid, values=(self._simbolo(iid),) + tuple(f["valores"]),
                              tags=tuple(f.get("tags", ())))
+        self._avisar()
+
+    def _avisar(self) -> None:
+        if self.al_cambiar:
+            self.al_cambiar()
 
     def _refrescar_fila(self, iid: str) -> None:
         self.tree.set(iid, "chk", self._simbolo(iid))
@@ -74,6 +80,7 @@ class ListaCheck(ttk.Frame):
             return
         self.marcado[iid] = not self.marcado.get(iid, False)
         self._refrescar_fila(iid)
+        self._avisar()
 
     def _clic(self, ev) -> None:
         if self.tree.identify_region(ev.x, ev.y) == "cell" and self.tree.identify_column(ev.x) == "#1":
@@ -92,6 +99,7 @@ class ListaCheck(ttk.Frame):
             if i in self.marcado and i not in self.bloqueado:
                 self.marcado[i] = valor
                 self._refrescar_fila(i)
+        self._avisar()
 
     def marcar_todo(self, valor: bool) -> None:
         self.marcar(list(self.tree.get_children()), valor)
@@ -215,6 +223,7 @@ class App(tk.Tk):
         else:
             self.barra.stop()
             self.barra.configure(mode="determinate", value=0)
+        self._actualizar_cuenta()
 
     def _bombear(self) -> None:
         try:
@@ -351,9 +360,9 @@ class App(tk.Tk):
         pie.pack(side="bottom", fill="x")  # primero el pie: así el registro nunca queda cortado
         self.barra = ttk.Progressbar(pie, mode="determinate")
         self.barra.pack(fill="x")
-        caja = Tarjeta(pie, p, fondo=p["log"], alto=130)
+        caja = Tarjeta(pie, p, fondo=p["log"], alto=86)
         caja.pack(fill="x", pady=(6, 0))
-        self.txt_log = tk.Text(caja.cuerpo, height=5, state="disabled", font=("Consolas", 9), bg=p["log"], fg=p["fg"],
+        self.txt_log = tk.Text(caja.cuerpo, height=3, state="disabled", font=("Consolas", 9), bg=p["log"], fg=p["fg"],
                                relief="flat", highlightthickness=0)
         sb = ttk.Scrollbar(caja.cuerpo, command=self.txt_log.yview)
         self.txt_log.configure(yscrollcommand=sb.set)
@@ -474,33 +483,50 @@ class App(tk.Tk):
         for t in (self.txt_nivel, self.txt_consec):
             for tag, color in (("tit", p["fg"]), ("ok", p["ok"]), ("warn", p["warn"])):
                 t.tag_configure(tag, foreground=color, font=("Segoe UI", 9, "bold"))
+        acc = ttk.Frame(f)
+        acc.pack(fill="x", pady=(0, 6))
+        self.btn_aplicar = self._boton(acc, tr("APLICAR CAMBIOS MARCADOS ({n})", n=0), self._aplicar, "accion")
+        self.btn_aplicar.pack(side="right")
+        self.lbl_cuenta = ttk.Label(acc, text="", style="Sub.TLabel")
+        self.lbl_cuenta.pack(side="right", padx=12)
+        self._boton(acc, tr("Marcar todo"), lambda: self.lista_opt.marcar_todo(True), bloquea=False).pack(side="left")
+        self._boton(acc, tr("Desmarcar todo"), lambda: self.lista_opt.marcar_todo(False), bloquea=False).pack(side="left", padx=4)
+        self._boton(acc, tr("Actualizar vista previa"), self._refrescar_plan).pack(side="left", padx=4)
+        self._boton(acc, tr("Restaurar una sesión…"), self._dialogo_restaurar).pack(side="left", padx=4)
+        ttk.Label(f, text=tr("Elegir un nivel no cambia nada: solo muestra qué se haría. Marcá lo que quieras y confirmá con el botón."),
+                  style="Sub.TLabel").pack(fill="x", pady=(0, 6))
         tarj_lista = Tarjeta(f, p, fondo=p["panel"], alto=150)
         tarj_lista.pack(fill="both", expand=True)
         self.lista_opt = ListaCheck(tarj_lista.cuerpo, [("grupo", tr("Grupo"), 150), ("titulo", tr("Cambio"), 330), ("riesgo", tr("Riesgo"), 70, "center"),
-                                        ("estado", tr("En este equipo"), 300)], p, altura=7, al_elegir=self._detalle_cambio)
+                                        ("estado", tr("En este equipo"), 300)], p, altura=7, al_elegir=self._detalle_cambio,
+                                    al_cambiar=self._actualizar_cuenta)
         self.lista_opt.pack(fill="both", expand=True)
-        tarj_det = Tarjeta(f, p, fondo=p["caja3"], alto=96)
-        tarj_det.pack(fill="x", pady=6)
-        self.txt_det = self._caja_texto(tarj_det.cuerpo, p["caja3"], height=4, font=("Segoe UI", 9), padx=4, pady=2)
+        tarj_det = Tarjeta(f, p, fondo=p["caja3"], alto=84)
+        tarj_det.pack(fill="x", pady=(6, 0))
+        self.txt_det = self._caja_texto(tarj_det.cuerpo, p["caja3"], height=3, font=("Segoe UI", 9), padx=4, pady=2)
         self.txt_det.pack(fill="both", expand=True)
-        bs = ttk.Frame(f)
-        bs.pack(fill="x")
-        self._boton(bs, tr("Marcar todo"), lambda: self.lista_opt.marcar_todo(True), bloquea=False).pack(side="left")
-        self._boton(bs, tr("Desmarcar todo"), lambda: self.lista_opt.marcar_todo(False), bloquea=False).pack(side="left", padx=4)
-        self._boton(bs, tr("Actualizar vista previa"), self._refrescar_plan).pack(side="left", padx=4)
-        self._boton(bs, tr("Restaurar una sesión…"), self._dialogo_restaurar).pack(side="right")
-        self._boton(bs, tr("APLICAR NIVEL"), self._aplicar, "accion").pack(side="right", padx=8)
         self._texto_nivel()
 
     def _texto_con_scroll(self, master, columna: int, fondo: str) -> tk.Text:
-        tarjeta = Tarjeta(master, self.pal, fondo=fondo, alto=190)
+        tarjeta = Tarjeta(master, self.pal, fondo=fondo, alto=150)
         tarjeta.grid(row=0, column=columna, sticky="nsew", padx=(0 if columna == 0 else 5, 5 if columna == 0 else 0))
-        t = self._caja_texto(tarjeta.cuerpo, fondo, height=8, font=("Segoe UI", 9), padx=6, pady=4)
+        t = self._caja_texto(tarjeta.cuerpo, fondo, height=6, font=("Segoe UI", 9), padx=6, pady=4)
         sb = ttk.Scrollbar(tarjeta.cuerpo, command=t.yview)
         t.configure(yscrollcommand=sb.set)
         t.pack(side="left", fill="both", expand=True)
         sb.pack(side="right", fill="y")
         return t
+
+    def _actualizar_cuenta(self) -> None:
+        """Contador de cambios marcados y estado del botón de aplicar."""
+        try:
+            n = len(self.lista_opt.marcados())
+            total = sum(1 for x in self.plan_actual if x["aplica"])
+            self.lbl_cuenta.configure(text=tr("{n} de {total} cambios marcados", n=n, total=total))
+            self.btn_aplicar.configure(text=tr("APLICAR CAMBIOS MARCADOS ({n})", n=n),
+                                       state="disabled" if (n == 0 or self.busy) else "normal")
+        except (AttributeError, tk.TclError):
+            pass
 
     def _cambio_nivel(self) -> None:
         self._texto_nivel()
@@ -530,7 +556,7 @@ class App(tk.Tk):
         if self.busy:
             self.after(500, self._refrescar_plan)
             return
-        self.log(tr("Analizando el equipo para el nivel {nivel}...", nivel=tr(NIVEL_NOMBRE[nivel])))
+        self.log(tr("Revisando el equipo (solo lectura, no se modifica nada) para el nivel {nivel}...", nivel=tr(NIVEL_NOMBRE[nivel])))
         self._tarea(lambda: (nivel, nucleo.plan(nivel, self.env, self.equipo or None)), self._mostrar_plan)
 
     def _mostrar_plan(self, res) -> None:

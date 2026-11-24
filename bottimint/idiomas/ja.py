@@ -15,7 +15,6 @@ T = {
     'Actualizar todos los programas': 'すべてのプログラムを更新',
     'Actualizar vista previa': 'プレビューを更新',
     'Administrador': '管理者',
-    'Analizando el equipo para el nivel {nivel}...': 'レベル「{nivel}」のためにPCを分析中...',
     'Aplicar': '適用',
     'Avisos de licencia:': 'ライセンスに関する注意:',
     'BottiMint - INFORME DE OPTIMIZACIÓN': 'BottiMint - 最適化レポート',
@@ -162,4 +161,8 @@ T = {
     'Sí': 'はい',
     'No': 'いいえ',
     'Aceptar': 'OK',
+    'Revisando el equipo (solo lectura, no se modifica nada) para el nivel {nivel}...': 'レベル「{nivel}」のためにPCを確認中（読み取りのみ、何も変更しません）...',
+    'APLICAR CAMBIOS MARCADOS ({n})': '選択した変更を適用 ({n})',
+    '{n} de {total} cambios marcados': '{total}件中{n}件を選択',
+    'Elegir un nivel no cambia nada: solo muestra qué se haría. Marcá lo que quieras y confirmá con el botón.': 'レベルを選んでも何も変わりません。実行内容を表示するだけです。項目にチェックを入れ、ボタンで確定してください。',
 }

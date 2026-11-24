@@ -15,7 +15,6 @@ T = {
     'Actualizar todos los programas': 'Обновить все программы',
     'Actualizar vista previa': 'Обновить предпросмотр',
     'Administrador': 'Администратор',
-    'Analizando el equipo para el nivel {nivel}...': 'Анализ компьютера для уровня {nivel}...',
     'Aplicar': 'Применить',
     'Avisos de licencia:': 'Лицензионные замечания:',
     'BottiMint - INFORME DE OPTIMIZACIÓN': 'BottiMint - ОТЧЁТ ОБ ОПТИМИЗАЦИИ',
@@ -162,4 +161,8 @@ T = {
     'Sí': 'Да',
     'No': 'Нет',
     'Aceptar': 'ОК',
+    'Revisando el equipo (solo lectura, no se modifica nada) para el nivel {nivel}...': 'Проверка компьютера (только чтение, ничего не меняется) для уровня {nivel}...',
+    'APLICAR CAMBIOS MARCADOS ({n})': 'ПРИМЕНИТЬ ВЫБРАННЫЕ ИЗМЕНЕНИЯ ({n})',
+    '{n} de {total} cambios marcados': 'Выбрано изменений: {n} из {total}',
+    'Elegir un nivel no cambia nada: solo muestra qué se haría. Marcá lo que quieras y confirmá con el botón.': 'Выбор уровня ничего не меняет: он лишь показывает, что будет сделано. Отметьте нужное и подтвердите кнопкой.',
 }

@@ -14,7 +14,6 @@ T = {
     'Actualizar todos los programas': 'Update all programs',
     'Actualizar vista previa': 'Refresh preview',
     'Administrador': 'Administrator',
-    'Analizando el equipo para el nivel {nivel}...': 'Analyzing this PC for level {nivel}...',
     'Aplicar': 'Apply',
     'Avisos de licencia:': 'License notices:',
     'BottiMint - INFORME DE OPTIMIZACIÓN': 'BottiMint - OPTIMIZATION REPORT',
@@ -408,6 +407,10 @@ T = {
     'Sí': 'Yes',
     'No': 'No',
     'Aceptar': 'OK',
+    'Revisando el equipo (solo lectura, no se modifica nada) para el nivel {nivel}...': 'Checking this PC (read-only, nothing is changed) for level {nivel}...',
+    'APLICAR CAMBIOS MARCADOS ({n})': 'APPLY SELECTED CHANGES ({n})',
+    '{n} de {total} cambios marcados': '{n} of {total} changes selected',
+    'Elegir un nivel no cambia nada: solo muestra qué se haría. Marcá lo que quieras y confirmá con el botón.': 'Choosing a level changes nothing: it only shows what would be done. Tick what you want and confirm with the button.',
 }
 
 # Mensajes dinámicos del motor que se reconocen por patrón
