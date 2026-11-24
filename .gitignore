@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+.venv/
+venv/
+.idea/
+.vscode/
+# versiones anteriores y archivos locales
+_versiones_anteriores/
+_to_delete/
+Informe_*.txt
+
+# restos de la versión anterior del proyecto (archivos obsoletos que se pueden borrar a mano)
+/optimizador_pc.py
+/optimizador_core.py
+/optimizador_instalador.py
+/LEEME.txt
+/Compilar_exe.bat
+/_versiones_anteriores/
