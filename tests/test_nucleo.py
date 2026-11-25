@@ -173,6 +173,64 @@ class PruebasNucleo(unittest.TestCase):
         self.assertFalse(ses[0]["restaurada"])
         self.assertTrue(os.path.isfile(os.path.join(env.base_dir, "sesiones", ses[0]["sesion"], "informe.txt")))
 
+    def test_plan_pide_la_lista_de_apps_una_sola_vez(self):
+        class Contador(EntornoFalso):
+            llamadas = 0
+
+            def listar_appx(self):
+                Contador.llamadas += 1
+                return super().listar_appx()
+        env = Contador(tempfile.mkdtemp())
+        con_cache = nucleo.plan("profundo", env, env.detectar_equipo())
+        self.assertEqual(Contador.llamadas, 1)  # antes: una por cada cambio de apps
+        self.assertNotIn("listar_appx", env.__dict__)  # la caché se quita al terminar
+        Contador.llamadas = 0
+        env.listar_appx()
+        self.assertEqual(Contador.llamadas, 1)  # fuera de plan() no hay caché: siempre consulta
+        self.assertEqual([(x["id"], x["aplica"], x["detalle"]) for x in con_cache],
+                         [(x["id"], x["aplica"], x["detalle"]) for x in nucleo.plan("profundo", env, env.detectar_equipo())])
+
+    def test_cache_de_apps_anidada_y_no_persiste(self):
+        class Contador(EntornoFalso):
+            llamadas = 0
+
+            def listar_appx(self):
+                Contador.llamadas += 1
+                return super().listar_appx()
+        env = Contador(tempfile.mkdtemp())
+        with env.lecturas_en_cache():
+            with env.lecturas_en_cache():
+                env.listar_appx()
+            env.listar_appx()  # la caché del bloque externo sigue activa tras salir del anidado
+        self.assertEqual(Contador.llamadas, 1)
+        env.listar_appx()
+        self.assertEqual(Contador.llamadas, 2)
+
+    def test_tareas_estado_usa_un_solo_powershell(self):
+        env = EntornoFalso(tempfile.mkdtemp())
+        llamadas = []
+
+        def ps(script, timeout=300):
+            llamadas.append(script)
+            return 0, json.dumps([{"p": "\\Microsoft\\Windows\\Feedback\\Siuf\\", "n": "DmClient", "s": "Ready"},
+                                  {"p": "\\Microsoft\\Windows\\Feedback\\Siuf\\", "n": "Otra", "s": "Disabled"}])
+        env.ps = ps
+        pedidas = [("\\microsoft\\windows\\feedback\\siuf\\", "dmclient"),  # Windows no distingue mayúsculas
+                   ("\\Microsoft\\Windows\\Feedback\\Siuf\\", "Otra"),
+                   ("\\Microsoft\\Windows\\Feedback\\Siuf\\", "NoExiste")]
+        res = nucleo.Entorno.tareas_estado(env, pedidas)
+        self.assertEqual(len(llamadas), 1)
+        self.assertEqual([res[k] for k in pedidas], ["Ready", "Disabled", "NOEXISTE"])
+
+    def test_tareas_estado_con_un_solo_resultado_y_con_salida_ilegible(self):
+        env = EntornoFalso(tempfile.mkdtemp())
+        env.tareas = {("\\A\\", "T"): "Running"}
+        env.ps = lambda s, t=300: (0, json.dumps({"p": "\\A\\", "n": "T", "s": "Running"}))  # PowerShell da un objeto, no lista
+        self.assertEqual(nucleo.Entorno.tareas_estado(env, [("\\A\\", "T")]), {("\\A\\", "T"): "Running"})
+        env.ps = lambda s, t=300: (1, "basura")  # si no se puede leer, vuelve a consultar tarea por tarea
+        self.assertEqual(nucleo.Entorno.tareas_estado(env, [("\\A\\", "T"), ("\\A\\", "X")]),
+                         {("\\A\\", "T"): "Running", ("\\A\\", "X"): "NOEXISTE"})
+
 
 if __name__ == "__main__":
     unittest.main()

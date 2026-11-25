@@ -27,6 +27,7 @@ Uso (consola, como administrador):
 
 """
 import argparse
+import contextlib
 import ctypes
 import datetime
 import fnmatch
@@ -224,6 +225,39 @@ class Entorno:
     def tarea_estado(self, ruta: str, nombre: str) -> str:
         cod, out = self.ps(f"try {{ (Get-ScheduledTask -TaskPath {ps_str(ruta)} -TaskName {ps_str(nombre)} -ErrorAction Stop).State }} catch {{ 'NOEXISTE' }}")
         return out.strip().splitlines()[-1].strip() if out.strip() else "NOEXISTE"
+
+    def tareas_estado(self, tareas: List[Tuple[str, str]]) -> Dict[Tuple[str, str], str]:
+        """Estado de varias tareas con UN solo PowerShell (antes se lanzaba uno por tarea, ~1 s cada uno).
+        Se listan todas y se filtra en Python, así no se interpola nada en el script. Si el listado falla o no se
+        puede leer, se consulta tarea por tarea como antes."""
+        cod, out = self.ps("Get-ScheduledTask | ForEach-Object { [pscustomobject]@{ p = $_.TaskPath; n = $_.TaskName; "
+                           "s = [string]$_.State } } | ConvertTo-Json -Compress", 120)
+        try:
+            datos = json.loads(out)
+            datos = [datos] if isinstance(datos, dict) else list(datos)
+            existentes = {(str(d["p"]).lower(), str(d["n"]).lower()): str(d["s"]) for d in datos}
+        except (ValueError, TypeError, KeyError):
+            return {(r, n): self.tarea_estado(r, n) for r, n in tareas}
+        return {(r, n): existentes.get((r.lower(), n.lower()), "NOEXISTE") for r, n in tareas}
+
+    @contextlib.contextmanager
+    def lecturas_en_cache(self):
+        """Dentro del bloque, listar_appx() consulta a Windows una sola vez (varios cambios piden la misma lista).
+        Solo para consultas en solo lectura, como plan(): al aplicar cambios la lista deja de ser válida."""
+        if "listar_appx" in self.__dict__:  # ya hay una caché activa (uso anidado)
+            yield
+            return
+        original, memo = self.listar_appx, []
+
+        def con_cache() -> List[dict]:
+            if not memo:
+                memo.append(original())
+            return list(memo[0])
+        self.listar_appx = con_cache
+        try:
+            yield
+        finally:
+            del self.listar_appx
 
     def tarea_set(self, ruta: str, nombre: str, habilitar: bool) -> bool:
         cmd = "Enable-ScheduledTask" if habilitar else "Disable-ScheduledTask"
@@ -516,13 +550,15 @@ class CambioTareas(Cambio):
         self.tareas = tareas  # [(ruta, nombre)]
 
     def aplica(self, env):
-        n = sum(1 for r, t in self.tareas if env.tarea_estado(r, t) not in ("NOEXISTE", "Disabled"))
+        estados = env.tareas_estado(self.tareas)
+        n = sum(1 for k in self.tareas if estados[k] not in ("NOEXISTE", "Disabled"))
         return n > 0, f"{n} tareas activas"
 
     def aplicar(self, env, emitir, estado):
         previas = estado.setdefault("tareas", [])
+        estados = env.tareas_estado(self.tareas)
         for ruta, nombre in self.tareas:
-            if env.tarea_estado(ruta, nombre) in ("NOEXISTE", "Disabled"):
+            if estados[(ruta, nombre)] in ("NOEXISTE", "Disabled"):
                 continue
             if env.tarea_set(ruta, nombre, False):
                 previas.append({"ruta": ruta, "nombre": nombre})
@@ -955,14 +991,15 @@ def plan(nivel: str, env: Entorno, equipo: Optional[dict] = None) -> List[dict]:
     """Vista previa: qué haría cada cambio EN ESTE equipo, sin modificar nada."""
     equipo = equipo if equipo is not None else env.detectar_equipo()
     res = []
-    for c in cambios_del_nivel(nivel):
-        try:
-            aplica, detalle = c.aplica(env)
-        except Exception as ex:
-            aplica, detalle = False, f"no se pudo evaluar: {ex}"
-        res.append({"id": c.id, "nivel": c.nivel, "grupo": c.grupo, "titulo": c.titulo, "que_hace": c.que_hace,
-                    "consecuencia": c.consecuencia, "riesgo": c.riesgo, "reversible": c.reversible,
-                    "aplica": aplica, "detalle": detalle, "seleccionado": aplica and c.defecto(equipo)})
+    with env.lecturas_en_cache():  # las 5 apps consultan la misma lista de paquetes: se pide una sola vez
+        for c in cambios_del_nivel(nivel):
+            try:
+                aplica, detalle = c.aplica(env)
+            except Exception as ex:
+                aplica, detalle = False, f"no se pudo evaluar: {ex}"
+            res.append({"id": c.id, "nivel": c.nivel, "grupo": c.grupo, "titulo": c.titulo, "que_hace": c.que_hace,
+                        "consecuencia": c.consecuencia, "riesgo": c.riesgo, "reversible": c.reversible,
+                        "aplica": aplica, "detalle": detalle, "seleccionado": aplica and c.defecto(equipo)})
     return res
 
 
