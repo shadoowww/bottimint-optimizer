@@ -22,6 +22,8 @@ Herramienta para **Windows 10 / 11** para todo el mundo: limpia, optimiza por ni
 
 Detalle completo: [docs/NIVELES.md](docs/NIVELES.md) · [docs/PROGRAMAS.md](docs/PROGRAMAS.md) (en inglés).
 
+En una VM con Windows 11 (4 GB de RAM, 2 vCPU) los tres niveles bajaron el Administrador de tareas de **164 a 107 procesos** y de **3,4 a 1,9 GB** de memoria en uso ([informe con capturas y aclaraciones](docs/VM_TEST_REPORT.md)).
+
 ## Cómo instalarlo
 
 **Opción A - el `.exe` (sin instalar Python)**
@@ -111,7 +113,8 @@ Sin dependencias externas para ejecutar (solo la biblioteca estándar).
 
 ## Hoja de ruta
 
-- [ ] Capturas reales en Windows y pruebas completas en VM (Windows 10 y 11).
+- [x] Prueba en VM con Windows 11 con mediciones antes/después ([informe](docs/VM_TEST_REPORT.md), en inglés).
+- [ ] Capturas reales de la app en Windows y pruebas en Windows 10.
 - [ ] Más perfiles de instalación a pedido.
 - [ ] Firma digital del `.exe`.
 - [ ] Escaneo de seguridad básico (Defender, firewall, puertos y procesos sospechosos).

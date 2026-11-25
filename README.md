@@ -18,6 +18,8 @@ A **Windows 10 / 11** tool for everyone: it cleans, optimizes by levels (everyth
 | **Windows startup** | Lists and enables/disables programs that start with the PC (reversible). |
 | **Reports** | Generates a report of what was done, the consequences and how to go back, to keep or share. |
 
+In a Windows 11 virtual machine (4 GB RAM, 2 vCPU) the three levels took Task Manager from **164 to 107 processes** and from **3.4 to 1.9 GB** of memory in use (before/after screenshots and caveats in the [VM test report](docs/VM_TEST_REPORT.md)).
+
 Full details: [docs/NIVELES.md](docs/NIVELES.md) · [docs/PROGRAMAS.md](docs/PROGRAMAS.md).
 
 ## How to install
@@ -113,7 +115,8 @@ No external dependencies to run (standard library only).
 
 ## Roadmap
 
-- [ ] Real screenshots on Windows and full VM tests (Windows 10 and 11).
+- [x] Windows 11 VM test with before/after measurements ([report](docs/VM_TEST_REPORT.md)).
+- [ ] Real screenshots of the app on Windows and tests on Windows 10.
 - [ ] More install profiles on request.
 - [ ] Digital signature for the `.exe`.
 - [ ] Basic security scan (Defender, firewall, ports and suspicious processes).

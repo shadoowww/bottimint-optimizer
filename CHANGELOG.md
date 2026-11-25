@@ -2,6 +2,10 @@
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semantic versioning.
 
+## [Unreleased]
+
+- Docs: Windows 11 VM test report with before/after measurements (`docs/VM_TEST_REPORT.md`).
+
 ## [1.2.0] - 2026-11-24
 
 ### Added
