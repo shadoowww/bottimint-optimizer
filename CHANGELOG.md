@@ -24,6 +24,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semant
 - The results are exactly the same as before: same changes, same "applies / does not apply" and same default selection (verified on a real machine for the three levels, with and without the reuse).
 - `Entorno.listar_appx()` now takes `ubicacion` (default `True`, the previous behaviour). A custom environment that overrides it must accept that argument.
 
+### Fixed
+- **CI: two tests added in 1.3.2 failed on Linux** (the three `ubuntu-latest` jobs of the 1.3.2 push; the Windows jobs and `bandit` were fine). They were mistakes in the tests, not in the program, which only runs on Windows. They simulate Windows with `IS_WIN=True`, and on Linux:
+  - a literal Windows path (`C:\x\y.exe`) has no directory part, so `resolver_exe` treated it as a bare name and the test's expectation did not hold; the test now uses an explicit path built with `os.path.join`;
+  - `ejecutar()` passes `creationflags` (Windows only) and Linux's `subprocess` rejects it with `ValueError`; the test now calls `ejecutar()` outside the simulated Windows.
+  The 1.3.2 release itself is not affected: its workflow runs the tests on Windows only.
+
 ### Not changed (on purpose)
 - **Applying a level** (restore point, removing apps, disabling tasks and services, restoring) runs exactly as before. Its slowest step, one PowerShell per app removed, could be batched, but it changes the system and it should be tested in a virtual machine first (`docs/PRUEBAS_VM.md`).
 - `detectar_equipo()` (~2.3 s, one PowerShell call) is unchanged: it now overlaps with other reads instead of waiting for them.

@@ -92,7 +92,8 @@ class PruebasEjecutables(unittest.TestCase):
             self.assertEqual(limpieza.resolver_exe("powershell"), os.path.join(ps, "powershell.exe"))
             self.assertEqual(limpieza.resolver_exe("sc"), os.path.join(sys32, "sc.exe"))
             self.assertEqual(limpieza.resolver_exe("sc.exe"), os.path.join(sys32, "sc.exe"))
-            self.assertEqual(limpieza.resolver_exe(r"C:\x\y.exe"), r"C:\x\y.exe")      # respeta rutas explícitas
+            explicita = os.path.join(raiz, "otra", "y.exe")  # (no una ruta "C:\..." literal: en Linux no tiene directorio)
+            self.assertEqual(limpieza.resolver_exe(explicita), explicita)      # respeta rutas explícitas
 
     def test_un_ejecutable_inexistente_nunca_se_devuelve_como_nombre_desnudo(self):
         """Un nombre sin ruta lo busca Windows en el directorio actual y en el PATH: siempre se devuelve ruta absoluta."""
@@ -102,7 +103,8 @@ class PruebasEjecutables(unittest.TestCase):
                 r = limpieza.resolver_exe(nombre)
                 self.assertTrue(os.path.isabs(r), f"{nombre} -> {r}")
                 self.assertTrue(r.startswith(raiz) or "WindowsApps" in r, r)
-            self.assertEqual(limpieza.ejecutar([os.path.join(raiz, "System32", "noexiste.exe")])[0], 127)
+        # fuera del "Windows falso": con IS_WIN=True en Linux, subprocess rechazaría creationflags (solo existe en Windows)
+        self.assertEqual(limpieza.ejecutar([os.path.join(raiz, "System32", "noexiste.exe")])[0], 127)
 
     def test_winget_sin_perfil_conocido_no_cae_a_una_ruta_relativa(self):
         raiz = tempfile.mkdtemp()
