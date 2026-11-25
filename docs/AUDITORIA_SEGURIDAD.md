@@ -40,7 +40,7 @@ The injection tests (`PruebasInyeccion`, `PruebasManifiesto`) passed on the firs
 
 ## 4. Tests
 
-- 74 tests in total (1 skipped on Linux: the real-junction one, which only runs on Windows).
+- 82 tests in total (1 skipped on Linux: the real-junction one, which only runs on Windows).
 - GUI tests run under `xvfb`; the rest run without a display.
 - They cover: links, dangerous paths, executables, injection, manifest, settings, languages, contrast and the exit confirmation.
 

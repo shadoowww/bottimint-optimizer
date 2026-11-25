@@ -45,6 +45,7 @@ Before applying any of them a **Windows restore point** is created and verified;
 
 - Everything in the Basic level.
 - Uninstalls unnecessary preinstalled apps (Solitaire, News, Weather, Clipchamp, personal Teams, filler games, etc.).
+- Cleans up the Start menu: removes filler apps (OneNote, To Do, Maps, Paint 3D, LinkedIn, Copilot...) and the Xbox app with the Game Bar, and unpins everything pinned to Start.
 - Turns off suggestions, ads and recommendations in the Start menu and lock screen.
 - Disables Microsoft telemetry scheduled tasks.
 - Disables known startup programs that aren't needed (Spotify, Teams, Skype, Adobe/Java updaters...).
@@ -58,15 +59,21 @@ Before applying any of them a **Windows restore point** is created and verified;
 
 **Reversibility:** Registry, tasks and startup are restored with one click. Apps are recovered when possible; otherwise, from the Microsoft Store.
 
-### Changes introduced by this level (9)
+### Changes introduced by this level (15)
 
 | Change | Group | Risk | Reversible | Checked by default | What it does | Consequence |
 |---|---|---|---|---|---|---|
 | **Uninstall unnecessary preinstalled apps**<br>`apps_bloat` | Preinstalled apps | 🟢 low | no | yes | Removes Solitaire, News, Weather, Finance, Sports, Get Help, Tips, Office Hub, Feedback Hub, Mixed Reality, 3D Viewer, Skype, People, Cortana, Clipchamp, personal Teams, Power Automate and third-party games/promos (Candy Crush, TikTok, Netflix, Spotify, Disney, Facebook, Instagram, Amazon...). | The apps disappear from the Start menu. If you want them, download them from the Microsoft Store. |
 | **Uninstall Phone Link and Mail/Calendar**<br>`apps_opcionales` | Preinstalled apps | 🟠 medium | no | no | Removes 'Phone Link' and the Windows Mail and Calendar apps. | You won't be able to use Phone Link or the Mail/Calendar app. If you use them, do NOT select this. |
+| **Clean the Start menu of filler apps**<br>`apps_inicio` | Preinstalled apps | 🟢 low | no | yes | Removes OneNote, To Do, Maps, Voice Recorder, Paint 3D, LinkedIn, Copilot and Dev Home (and their Start menu tiles). | They disappear from the Start menu. If you want one, download it from the Microsoft Store. Calculator, Photos, Clock, Edge and Store are NOT touched. |
+| **Turn off Copilot and remove its button**<br>`reg_copilot` | Preinstalled apps | 🟢 low | yes | yes | Turns off Windows Copilot by policy (all users) and hides its taskbar button. It complements uninstalling the Copilot app, which Windows sometimes reinstalls. | Copilot stops opening (also with Win+C) and its button disappears from the taskbar. If you use it, do NOT check this. |
+| **Uninstall OneDrive**<br>`onedrive` | Preinstalled apps | 🟠 medium | yes | no | Closes and uninstalls OneDrive (it is not a Store app, which is why the other cleanups don't touch it) and stops it from being reinstalled. It does not delete your OneDrive folder or what is in the cloud. | You stop syncing with the cloud. 'Online-only' files stop being available on this PC (they stay in the cloud). If you use OneDrive, do NOT check this. |
+| **Remove the Xbox app and Game Bar from the Start menu**<br>`apps_xbox` | Preinstalled apps | 🟠 medium | no | yes | Uninstalls the Xbox app and the Game Bar (Xbox Game Bar). It does not touch the Xbox sign-in component that some Microsoft Store games use. | The Xbox app and Win+G stop working; Win+G may show a prompt asking for an app. Steam/Epic/Battle.net are not affected. If you use Game Pass, do NOT check this. |
+| **Uninstall Camera, Sticky Notes and new Outlook**<br>`apps_extra` | Preinstalled apps | 🟠 medium | no | no | Removes the Camera and Sticky Notes apps and the new Outlook for Windows. | You won't be able to use the Camera app or Sticky Notes. If you use them, do NOT check this. |
+| **Unpin everything from the Start menu**<br>`inicio_pines` | Start menu | 🟢 low | no | yes | Removes all tiles and pinned items from the Start menu (Edge, Photos, Store, Calculator, etc.) so it is left empty. Then you pin only what you want. | The Start menu is left empty. The apps stay installed and can be found in “All apps” or by searching. The previous layout cannot be restored. |
 | **Turn off Windows ads and suggestions**<br>`reg_sugerencias` | Ads and suggestions | 🟢 low | yes | yes | Disables the advertising ID, suggested apps, tips, Start menu recommendations and ads in Explorer. | Suggested apps and ads stop appearing in Start/lock screen. Applies to the current user. |
 | **Disable telemetry scheduled tasks**<br>`tareas_telemetria` | Telemetry | 🟢 low | yes | yes | Disables tasks that collect and send usage data (Compatibility Appraiser, CEIP, Feedback, etc.). | Microsoft receives less usage data. No effect on daily use. |
-| **Disable unnecessary startup programs**<br>`inicio_conocidos` | Startup programs | 🟢 low | yes | yes | Disables at boot: Spotify, Discord, Teams, Skype, Adobe/Java updaters, Edge auto-start, CCleaner Monitor, iTunes Helper, Cortana. | Those programs don't open on their own: open them by hand when needed. Check whether you always use Discord/Spotify. |
+| **Disable unnecessary startup programs**<br>`inicio_conocidos` | Startup programs | 🟢 low | yes | yes | Disables at startup: OneDrive, Edge and Chrome (preloading), Spotify, Discord, Teams, Skype, OneNote, Phone Link, Xbox, Copilot, Adobe/Java updaters, CCleaner Monitor, iTunes Helper, Cortana. Keeps the basics: antivirus, audio, network and drivers. | Those programs don't open on their own: open them by hand when you need them (Edge and Chrome work the same, they just stop preloading). Check whether you always use Discord/Spotify. |
 | **Clean Windows components (WinSxS)**<br>`limp_componentes` | Maintenance | 🟢 low | no | yes | Removes old versions of Windows components (WinSxS). Frees several GB. Slow. | Old updates can no longer be uninstalled. The process takes several minutes. |
 | **Verify system files (SFC)**<br>`limp_sfc` | Maintenance | 🟢 low | no | no | Verifies and repairs corrupted Windows files (10-30 min). | None; it just takes time. Use it if the PC has errors or freezes. |
 | **Repair Windows image (DISM)**<br>`limp_dism` | Maintenance | 🟢 low | no | no | Repairs the Windows image (useful if SFC couldn't repair). | None; it may take a while and needs internet. |

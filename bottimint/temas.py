@@ -38,6 +38,8 @@ def aplicar(root: "tk.Misc", nombre: str) -> dict:
     st.configure("Titulo.TLabel", font=("Segoe UI", 16, "bold"), foreground=p["acento"])
     st.configure("Sub.TLabel", foreground=p["sub"])
     st.configure("Peligro.TLabel", foreground=p["peligro"], font=("Segoe UI", 9, "bold"))
+    st.configure("EstadoOk.TLabel", foreground=p["ok"], font=("Segoe UI", 10, "bold"))
+    st.configure("EstadoBusy.TLabel", foreground=p["warn"], font=("Segoe UI", 10, "bold"))
     st.configure("TButton", background=p["panel"], foreground=p["fg"], padding=(10, 4), borderwidth=1, relief="flat")
     st.map("TButton", background=[("disabled", p["bg"]), ("active", p["sel"])],
            foreground=[("disabled", p["gris"])], bordercolor=[("focus", p["acento"])])

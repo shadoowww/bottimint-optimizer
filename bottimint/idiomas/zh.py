@@ -172,4 +172,7 @@ T = {
     'winget («Instalador de aplicaciones» de Microsoft) no está en este equipo.\n\nBottiMint puede instalarlo ahora: primero intenta registrarlo y, si no está, lo descarga de los servidores oficiales de Microsoft (github.com/microsoft y aka.ms, unos 20 MB) y Windows comprueba su firma.\n\nHace falta conexión a internet. ¿Instalarlo ahora?': '此电脑上没有 winget（Microsoft 的“应用安装程序”）。\n\nBottiMint 现在可以安装它：先尝试注册，若不存在则从 Microsoft 官方服务器（github.com/microsoft 和 aka.ms，约 20 MB）下载，并由 Windows 校验签名。\n\n需要联网。现在安装吗？',
     'winget quedó instalado. Ya podés instalar programas.': 'winget 已安装，现在可以安装程序了。',
     'No se pudo instalar winget. Probá instalar «Instalador de aplicaciones» desde Microsoft Store. Mirá el registro para ver el detalle.': '无法安装 winget。请尝试从 Microsoft Store 安装“应用安装程序”。详情见日志。',
+    'Trabajando… esperá a que termine, no cierres el programa.': '正在处理… 请等待完成，不要关闭程序。',
+    'Listo. Podés elegir lo que quieras.': '完成。您可以随意选择。',
+    'Terminó con un error. Mirá el registro de abajo.': '已因错误结束。请查看下方日志。',
 }

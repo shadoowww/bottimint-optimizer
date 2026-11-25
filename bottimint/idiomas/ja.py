@@ -172,4 +172,7 @@ T = {
     'winget («Instalador de aplicaciones» de Microsoft) no está en este equipo.\n\nBottiMint puede instalarlo ahora: primero intenta registrarlo y, si no está, lo descarga de los servidores oficiales de Microsoft (github.com/microsoft y aka.ms, unos 20 MB) y Windows comprueba su firma.\n\nHace falta conexión a internet. ¿Instalarlo ahora?': 'winget（Microsoft の「アプリ インストーラー」）がこのPCにありません。\n\nBottiMint が今インストールできます。まず登録を試し、なければ Microsoft の公式サーバー（github.com/microsoft と aka.ms、約20 MB）からダウンロードし、Windows が署名を確認します。\n\nインターネット接続が必要です。今すぐインストールしますか？',
     'winget quedó instalado. Ya podés instalar programas.': 'winget をインストールしました。プログラムをインストールできます。',
     'No se pudo instalar winget. Probá instalar «Instalador de aplicaciones» desde Microsoft Store. Mirá el registro para ver el detalle.': 'winget をインストールできませんでした。Microsoft Store から「アプリ インストーラー」を入れてみてください。詳細はログをご覧ください。',
+    'Trabajando… esperá a que termine, no cierres el programa.': '処理中… 完了までお待ちください。プログラムを閉じないでください。',
+    'Listo. Podés elegir lo que quieras.': '完了しました。好きな項目を選べます。',
+    'Terminó con un error. Mirá el registro de abajo.': 'エラーで終了しました。下のログを確認してください。',
 }

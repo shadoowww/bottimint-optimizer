@@ -4,7 +4,29 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semant
 
 ## [Unreleased]
 
-- Docs: Windows 11 VM test report with before/after measurements (`docs/VM_TEST_REPORT.md`).
+## [1.3.0] - 2026-11-25
+
+### Added
+- **Deep level, cleaner Start menu (Windows 10 and 11):**
+  - `apps_inicio`: removes OneNote, To Do, Maps, Voice Recorder, Paint 3D, LinkedIn, Copilot, Dev Home and Journal (and their Start tiles).
+  - `apps_xbox`: removes the Xbox app and the Game Bar. It does not touch the Xbox sign-in component that some Microsoft Store games use. Warns that Win+G may show a prompt.
+  - `apps_extra` (unchecked by default): Camera, Sticky Notes and the new Outlook.
+  - `inicio_pines`: unpins **everything** from Start (Windows 10 tiles and Windows 11 pins) so it is left empty. It runs after the apps are removed. The previous layout cannot be restored.
+  - Calculator, Photos, Clock, Media Player, Snipping Tool, Paint, Edge, Store and Windows Security stay protected.
+- **Copilot:** `reg_copilot` turns Windows Copilot off by policy and hides its taskbar button (removing the app alone was not enough). Restorable.
+- **OneDrive:** `onedrive` (unchecked by default) uninstalls OneDrive with Windows' own uninstaller and blocks its return by policy. It does not delete your OneDrive folder or the cloud. It refuses to run if Desktop/Documents/Pictures are stored in OneDrive, and reinstalls OneDrive on restore.
+- **Startup programs:** the change now also disables OneDrive, Edge and Chrome preloading, OneNote, Phone Link, Xbox and Copilot, and keeps security, audio, network and drivers.
+- The version is shown in the window title and in the header.
+- Docs: Windows 11 and Windows 10 VM test report with before/after measurements (`docs/VM_TEST_REPORT.md`); README roadmap and results updated.
+- Translations: all new texts in English (complete); status messages also in Russian, Japanese and Chinese.
+
+### Changed
+- **UI:** removed the empty detail box under the change list; the details of the selected change now show in the right-hand panel. The list gets the freed space.
+- **UI:** clear status line: "Working… wait for it to finish" with a progress bar, then "Done. You can choose whatever you want." (or an error notice). The progress bar is only visible while working.
+- Apps that Windows refuses to remove are now reported (as a failed change, or next to the count) instead of being silently skipped.
+
+### Tests
+- 82 tests (was 74): Start menu apps and protection, Xbox, Copilot, OneDrive (apply, restore, Known Folder Move guard), unpin, startup programs, failed app removal, title version, translations of the new dynamic messages.
 
 ## [1.2.0] - 2026-11-24
 

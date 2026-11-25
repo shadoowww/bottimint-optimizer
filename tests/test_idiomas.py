@@ -92,6 +92,12 @@ class PruebasIdiomas(unittest.TestCase):
         self.assertEqual(tr("12 tareas activas"), "12 active tasks")
         self.assertEqual(tr("12.5 MB liberados"), "12.5 MB freed")
         self.assertEqual(tr("← Servicio de ubicación: 2 servicios ajustados"), "← Location service: 2 services adjusted")
+        self.assertEqual(tr("7 elementos desanclados"), "7 items unpinned")
+        self.assertEqual(tr("2 apps desinstaladas; no se pudieron quitar: Microsoft.Copilot"),
+                         "2 apps uninstalled; could not remove: Microsoft.Copilot")
+        self.assertEqual(tr("1 ajustes restaurados; OneDrive reinstalado"), "1 settings restored; OneDrive reinstalled")
+        self.assertEqual(tr("ERROR: el desinstalador de OneDrive falló (código 5)"),
+                         "ERROR: the OneDrive uninstaller failed (code 5)")
 
     def test_un_patron_no_se_aplica_a_un_texto_cualquiera(self):
         i18n.set_idioma("ja")

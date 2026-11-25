@@ -75,6 +75,7 @@ NIVELES: Dict[str, dict] = {
         "que_hace": [
             "Todo lo del nivel Básico.",
             "Desinstala apps preinstaladas innecesarias (Solitario, Noticias, Clima, Clipchamp, Teams personal, juegos de relleno, etc.).",
+            "Limpia el menú Inicio: quita apps de relleno (OneNote, To Do, Mapas, Paint 3D, LinkedIn, Copilot...) y la app de Xbox con la Barra de juegos, y desancla todo lo que viene anclado en Inicio.",
             "Apaga sugerencias, publicidad y recomendaciones del menú Inicio y la pantalla de bloqueo.",
             "Desactiva tareas programadas de telemetría de Microsoft.",
             "Deshabilita programas de inicio conocidos que no hacen falta (Spotify, Teams, Skype, actualizadores de Adobe/Java...).",
@@ -109,6 +110,21 @@ NIVELES: Dict[str, dict] = {
         "reversibilidad": "Todo se deshace con 'restaurar' (guarda el estado original de cada servicio y ajuste) y además existe el punto de restauración de Windows.",
     },
 }
+
+# Nombre de la acción "Desanclar de Inicio" en los idiomas más comunes (el shell la muestra traducida)
+_PS_DESANCLAR_INICIO = r"""
+$pat = '^(Unpin from Start|Desanclar de Inicio|Quitar de Inicio|Desafixar do In.cio|D.tacher de D.marrer|Von Start l.sen|Rimuovi da Start)$'
+$n = 0
+try {
+  $items = (New-Object -ComObject Shell.Application).NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}').Items()
+  foreach ($it in $items) {
+    foreach ($v in $it.Verbs()) {
+      if (($v.Name -replace '&','') -match $pat) { $v.DoIt(); $n++; break }
+    }
+  }
+} catch { }
+Write-Output ('DESANCLADOS=' + $n)
+"""
 
 # Apps que NUNCA se tocan (defensa extra, aunque no estén en las listas de borrado)
 APPS_PROTEGIDAS = ("Microsoft.WindowsStore", "Microsoft.WindowsCalculator", "Microsoft.Windows.Photos",
@@ -224,6 +240,30 @@ class Entorno:
 
     def quitar_appx(self, full: str) -> bool:
         return _RE_APPX.match(full or "") is not None and self.ps(f"Remove-AppxPackage -Package {ps_str(full)}", 180)[0] == 0
+
+    def desanclar_inicio(self) -> int:
+        """Quita todos los anclados (mosaicos) del menú Inicio del usuario actual con la acción 'Desanclar de Inicio'
+        de cada app. Windows 10 y 11. Devuelve cuántos se quitaron (el nombre de la acción depende del idioma)."""
+        cod, out = self.ps(_PS_DESANCLAR_INICIO, 300)
+        m = re.search(r"DESANCLADOS=(\d+)", out or "")
+        return int(m.group(1)) if m else 0
+
+    def onedrive_instalado(self) -> bool:
+        """OneDrive es un programa de escritorio (no una app de la Tienda): se busca su ejecutable."""
+        rutas = [os.path.join(os.environ[v], *sub) for v, sub in
+                 (("LocalAppData", ("Microsoft", "OneDrive", "OneDrive.exe")),
+                  ("ProgramFiles", ("Microsoft OneDrive", "OneDrive.exe")),
+                  ("ProgramFiles(x86)", ("Microsoft OneDrive", "OneDrive.exe"))) if os.environ.get(v)]
+        return any(os.path.isfile(r) for r in rutas)
+
+    def onedrive_setup(self) -> Optional[str]:
+        """Instalador/desinstalador que trae Windows (queda en el sistema aunque se desinstale OneDrive)."""
+        raiz = os.environ.get("SystemRoot", "")
+        for sub in ("SysWOW64", "System32"):
+            r = os.path.join(raiz, sub, "OneDriveSetup.exe")
+            if raiz and os.path.isfile(r):
+                return r
+        return None
 
     def registrar_appx(self, ubicacion: str) -> bool:
         return _loc_appx_valida(ubicacion) and self.ps(f"Add-AppxPackage -DisableDevelopmentMode -Register {ps_str(ubicacion + chr(92) + 'AppxManifest.xml')}", 180)[0] == 0
@@ -520,10 +560,16 @@ class CambioApps(Cambio):
 
     def aplicar(self, env, emitir, estado):
         quitadas = estado.setdefault("apps", [])
+        fallos = []
         for p in self._coinciden(env):
             if env.quitar_appx(p["PackageFullName"]):
                 quitadas.append({"Name": p["Name"], "full": p["PackageFullName"], "loc": p.get("InstallLocation")})
-        return f"{len(quitadas)} apps desinstaladas"
+            else:
+                fallos.append(p["Name"])
+        if fallos and not quitadas:
+            raise RuntimeError("Windows no permitió quitar: " + ", ".join(sorted(set(fallos))))
+        extra = ("; no se pudieron quitar: " + ", ".join(sorted(set(fallos)))) if fallos else ""
+        return f"{len(quitadas)} apps desinstaladas{extra}"
 
     def revertir(self, env, estado):
         ok, manual = 0, []
@@ -535,6 +581,57 @@ class CambioApps(Cambio):
             else:
                 manual.append(a["Name"])
         return f"{ok} apps recuperadas" + (f"; reinstalar desde Microsoft Store: {', '.join(manual)}" if manual else "")
+
+
+class CambioOneDrive(CambioRegistro):
+    """Desinstala OneDrive con el desinstalador de Windows y evita que vuelva. No borra la carpeta ni la nube."""
+    _CARPETAS = ("Personal", "Desktop", "My Pictures")
+
+    def aplica(self, env):
+        if not env.onedrive_instalado():
+            return False, "OneDrive no está instalado"
+        if not env.onedrive_setup():
+            return False, "no se encontró el desinstalador de OneDrive de Windows"
+        for nombre in self._CARPETAS:
+            ex, v, _t = env.reg_get("HKCU", W + r"\Explorer\User Shell Folders", nombre)
+            if ex and isinstance(v, str) and "onedrive" in v.lower():
+                return False, "tu Escritorio/Documentos/Imágenes se guardan en OneDrive: no se desinstala"
+        return True, ""
+
+    def aplicar(self, env, emitir, estado):
+        setup = env.onedrive_setup()
+        if not setup:
+            raise RuntimeError("no se encontró el desinstalador de OneDrive")
+        env.run(["taskkill", "/f", "/im", "OneDrive.exe"], 30)
+        env.pausa(2)
+        cod, _out = env.run([setup, "/uninstall"], 300)
+        if cod != 0:
+            raise RuntimeError(f"el desinstalador de OneDrive falló (código {cod})")
+        estado["onedrive"] = True
+        super().aplicar(env, emitir, estado)
+        return "OneDrive desinstalado"
+
+    def revertir(self, env, estado):
+        r = super().revertir(env, estado)  # primero se quita la política que lo bloquea
+        if estado.get("onedrive"):
+            setup = env.onedrive_setup()  # se usa el de Windows, nunca una ruta del manifiesto
+            if setup:
+                env.run([setup], 600)
+                return r + "; OneDrive reinstalado"
+            return r + "; reinstalar OneDrive desde microsoft.com/onedrive"
+        return r
+
+
+class CambioPinesInicio(Cambio):
+    """Deja el menú Inicio sin anclados. No se puede restaurar el orden anterior (el usuario ancla lo que quiera)."""
+    reversible = False
+
+    def aplicar(self, env, emitir, estado):
+        n = env.desanclar_inicio()
+        return f"{n} elementos desanclados"
+
+    def revertir(self, env, estado):
+        return "Nada para restaurar: volvé a anclar a mano lo que quieras."
 
 
 class CambioInicio(Cambio):
@@ -650,6 +747,42 @@ def _catalogo() -> List[Cambio]:
                    "Quita 'Vincular con el móvil' (Phone Link) y las apps Correo y Calendario de Windows.",
                    "No se podrá usar Phone Link ni la app de Correo/Calendario. Si las usás, NO marcar.",
                    ["Microsoft.YourPhone", "microsoft.windowscommunicationsapps"], riesgo="medio", defecto=False),
+        CambioApps("apps_inicio", "profundo", "Apps preinstaladas", "Limpiar el menú Inicio de apps de relleno",
+                   "Quita OneNote, To Do, Mapas, Grabadora de voz, Paint 3D, LinkedIn, Copilot y Dev Home (y sus mosaicos del menú Inicio).",
+                   "Desaparecen del menú Inicio. Si querés alguna, se baja de Microsoft Store. Calculadora, Fotos, Reloj, Edge y Store NO se tocan.",
+                   ["Microsoft.Office.OneNote", "Microsoft.Todos", "Microsoft.WindowsMaps", "Microsoft.WindowsSoundRecorder",
+                    "Microsoft.MSPaint", "*LinkedIn*", "Microsoft.Copilot", "Microsoft.Windows.Ai.Copilot.Provider",
+                    "Microsoft.Windows.DevHome", "Microsoft.MicrosoftJournal"], riesgo="bajo"),
+        CambioRegistro("reg_copilot", "profundo", "Apps preinstaladas", "Apagar Copilot y quitar su botón",
+                       "Desactiva Copilot de Windows por política (todos los usuarios) y oculta su botón de la barra de tareas. "
+                       "Complementa la desinstalación de la app Copilot, que a veces Windows vuelve a instalar.",
+                       "Copilot deja de abrirse (también con Win+C) y su botón desaparece de la barra de tareas. Si lo usás, NO marcar.",
+                       [("HKCU", r"Software\Policies\Microsoft\Windows\WindowsCopilot", "TurnOffWindowsCopilot", REG_DWORD, 1),
+                        ("HKLM", r"SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot", "TurnOffWindowsCopilot", REG_DWORD, 1),
+                        ("HKCU", W + r"\Explorer\Advanced", "ShowCopilotButton", REG_DWORD, 0)]),
+        CambioOneDrive("onedrive", "profundo", "Apps preinstaladas", "Desinstalar OneDrive",
+                       "Cierra y desinstala OneDrive (no es una app de la Tienda, por eso las otras limpiezas no lo tocan) y evita que "
+                       "vuelva a instalarse. No borra tu carpeta OneDrive ni lo que hay en la nube.",
+                       "Dejás de sincronizar con la nube. Los archivos 'solo en línea' dejan de estar disponibles en esta PC (siguen en la nube). "
+                       "Si usás OneDrive, NO marcar.",
+                       [("HKLM", r"SOFTWARE\Policies\Microsoft\Windows\OneDrive", "DisableFileSyncNGSC", REG_DWORD, 1)],
+                       riesgo="medio", defecto=False),
+        CambioApps("apps_xbox", "profundo", "Apps preinstaladas", "Quitar la app de Xbox y la Barra de juegos del menú Inicio",
+                   "Desinstala la app Xbox y la Barra de juegos (Xbox Game Bar). No toca el inicio de sesión de Xbox que usan algunos juegos de la Tienda.",
+                   "No funcionan la app de Xbox ni Win+G; Win+G puede mostrar un aviso pidiendo una app. Steam/Epic/Battle.net no se afectan. Si usás Game Pass, NO marcar.",
+                   ["Microsoft.XboxApp", "Microsoft.GamingApp", "Microsoft.XboxGamingOverlay", "Microsoft.XboxGameOverlay",
+                    "Microsoft.XboxSpeechToTextOverlay"], riesgo="medio"),
+        CambioApps("apps_extra", "profundo", "Apps preinstaladas", "Desinstalar Cámara, Notas adhesivas y Outlook nuevo",
+                   "Quita las apps Cámara, Notas adhesivas (Sticky Notes) y el nuevo Outlook para Windows.",
+                   "No se podrá usar la cámara desde la app Cámara ni las notas adhesivas. Si las usás, NO marcar.",
+                   ["Microsoft.WindowsCamera", "Microsoft.MicrosoftStickyNotes", "Microsoft.OutlookForWindows"],
+                   riesgo="medio", defecto=False),
+        CambioPinesInicio("inicio_pines", "profundo", "Menú Inicio", "Desanclar todo del menú Inicio",
+                          "Quita todos los mosaicos y anclados del menú Inicio (Edge, Fotos, Tienda, Calculadora, etc.) para que quede vacío. "
+                          "Después anclás solo lo que quieras.",
+                          "El menú Inicio queda vacío. Las apps siguen instaladas y se encuentran en «Todas las aplicaciones» o buscando. "
+                          "No se puede restaurar el orden anterior.",
+                          riesgo="bajo"),
         CambioRegistro("reg_sugerencias", "profundo", "Publicidad y sugerencias", "Apagar publicidad y sugerencias de Windows",
                        "Desactiva el ID de publicidad, apps sugeridas, consejos, recomendaciones del menú Inicio y anuncios en el Explorador.",
                        "Dejan de aparecer apps sugeridas y publicidad en Inicio/bloqueo. Aplica al usuario actual.",
@@ -673,11 +806,13 @@ def _catalogo() -> List[Cambio]:
                       ("\\Microsoft\\Windows\\Windows Error Reporting\\", "QueueReporting"),
                       ("\\Microsoft\\Windows\\DiskDiagnostic\\", "Microsoft-Windows-DiskDiagnosticDataCollector")]),
         CambioInicio("inicio_conocidos", "profundo", "Programas de inicio", "Deshabilitar programas de inicio innecesarios",
-                     "Deshabilita al arranque: Spotify, Discord, Teams, Skype, actualizadores de Adobe/Java, Edge auto-inicio, "
-                     "CCleaner Monitor, iTunes Helper, Cortana.",
-                     "Esos programas no se abren solos: se abren a mano cuando se necesitan. Revisá si usás Discord/Spotify siempre.",
+                     "Deshabilita al arranque: OneDrive, Edge y Chrome (precarga), Spotify, Discord, Teams, Skype, OneNote, Phone Link, "
+                     "Xbox, Copilot, actualizadores de Adobe/Java, CCleaner Monitor, iTunes Helper, Cortana. Deja lo básico: antivirus, audio, red y drivers.",
+                     "Esos programas no se abren solos: se abren a mano cuando se necesitan (Edge y Chrome funcionan igual, solo dejan de precargarse). "
+                     "Revisá si usás Discord/Spotify siempre.",
                      ["spotify", "discord", "teams", "skype", "adobe", "ccxprocess", "acrobat", "sunjavaupdate", "jusched",
-                      "microsoftedgeautolaunch", "ccleaner", "ituneshelper", "cortana"], riesgo="bajo"),
+                      "microsoftedgeautolaunch", "msedge", "googlechromeautolaunch", "onedrive", "ccleaner", "ituneshelper",
+                      "cortana", "onenote", "yourphone", "phoneexperience", "xbox", "gamebar", "copilot"], riesgo="bajo"),
         CambioLimpieza("componentes", "profundo", "Elimina versiones viejas de componentes de Windows (WinSxS). Libera varios GB. Lento.",
                        "Ya no se pueden desinstalar actualizaciones antiguas. El proceso tarda varios minutos.", riesgo="bajo",
                        grupo="Mantenimiento"),

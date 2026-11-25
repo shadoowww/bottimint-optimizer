@@ -12,13 +12,13 @@ A **Windows 10 / 11** tool for everyone: it cleans, optimizes by levels (everyth
 
 | Module | What it includes |
 |---|---|
-| **Tiered optimization** | **Basic** (general cleanup) · **Deep** (+ remove pre-installed apps and ads, scheduled telemetry, startup programs) · **Extreme / Gaming** (+ services, background processes, no animations, solid black desktop, power plan). Every change explains **what it does and what the consequence is**. |
+| **Tiered optimization** | **Basic** (general cleanup) · **Deep** (+ remove pre-installed apps and ads, clean and unpin the Start menu, turn off Copilot, optionally uninstall OneDrive, scheduled telemetry, startup programs) · **Extreme / Gaming** (+ services, background processes, no animations, solid black desktop, power plan). Every change explains **what it does and what the consequence is**. |
 | **Restore** | Before touching anything it creates a **Windows restore point** and checks that it exists (if that fails, **nothing is changed**). It also stores the original state of each setting and undoes it with one click. |
 | **Programs** | Short, curated catalog (browsers, essentials, utilities, development, **gaming**: Steam, Epic, Ubisoft, EA, GOG, Battle.net…, runtimes) with **profiles** (office, gamer, tools). Installs silently with **winget** (and can install winget for you if it is missing). |
 | **Windows startup** | Lists and enables/disables programs that start with the PC (reversible). |
 | **Reports** | Generates a report of what was done, the consequences and how to go back, to keep or share. |
 
-In a Windows 11 virtual machine (4 GB RAM, 2 vCPU) the three levels took Task Manager from **164 to 107 processes** and from **3.4 to 1.9 GB** of memory in use (before/after screenshots and caveats in the [VM test report](docs/VM_TEST_REPORT.md)).
+In 4 GB virtual machines the three levels took Task Manager from **164 to 107 processes** and **3.4 to 1.9 GB** of memory in use on Windows 11, and from **144 to 89 processes** and **1.8 to 1.3 GB** on Windows 10 (before/after screenshots and caveats in the [VM test report](docs/VM_TEST_REPORT.md)).
 
 Full details: [docs/NIVELES.md](docs/NIVELES.md) · [docs/PROGRAMAS.md](docs/PROGRAMAS.md).
 
@@ -115,8 +115,8 @@ No external dependencies to run (standard library only).
 
 ## Roadmap
 
-- [x] Windows 11 VM test with before/after measurements ([report](docs/VM_TEST_REPORT.md)).
-- [ ] Real screenshots of the app on Windows and tests on Windows 10.
+- [x] Windows 11 and Windows 10 VM tests with before/after measurements ([report](docs/VM_TEST_REPORT.md)).
+- [ ] Real screenshots of the app on Windows.
 - [ ] More install profiles on request.
 - [ ] Digital signature for the `.exe`.
 - [ ] Basic security scan (Defender, firewall, ports and suspicious processes).

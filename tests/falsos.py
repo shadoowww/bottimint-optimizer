@@ -25,11 +25,15 @@ class EntornoFalso(nucleo.Entorno):
                      {"Name": "Microsoft.WindowsStore", "PackageFullName": "WS_1", "InstallLocation": "C:\\b"},
                      {"Name": "king.com.CandyCrush", "PackageFullName": "CC_1", "InstallLocation": "C:\\c"}]
         self.inicio = [Entrada("Spotify", "spotify.exe", "Usuario"), Entrada("Realtek", "rtk.exe", "Sistema"),
-                       Entrada("Discord", "discord.exe", "Usuario")]
+                       Entrada("Discord", "discord.exe", "Usuario"), Entrada("OneDrive", "C:\\OneDrive\\OneDrive.exe /background", "Usuario"),
+                       Entrada("MicrosoftEdgeAutoLaunch_AB12", "msedge.exe --no-startup-window", "Usuario"),
+                       Entrada("SecurityHealth", "SecurityHealthSystray.exe", "Sistema")]
         self.punto_ok, self.admin, self.cmds, self.puntos = punto_ok, admin, [], []
         self.spi = {g: 1 for _c, g, _s, _v, _d in nucleo.SPI_AJUSTES}  # todo activado al principio
         self.spi[0x200A] = 1  # suavizado estándar (no ClearType)
         self.fondos = []
+        self.onedrive = True
+        self.anclados = 7
         self.reg[("HKCU", r"Control Panel\Desktop", "WallPaper")] = ("C:\\Users\\x\\foto.jpg", 1)
         self.reg[("HKCU", r"Control Panel\Colors", "Background")] = ("10 20 30", 1)
 
@@ -54,8 +58,16 @@ class EntornoFalso(nucleo.Entorno):
 
     def fondo_aplicar(self, ruta, color): self.fondos.append((ruta, color))
 
+    def desanclar_inicio(self):
+        n, self.anclados = self.anclados, 0
+        return n
+
+    def onedrive_instalado(self): return self.onedrive
+    def onedrive_setup(self): return "C:\\Windows\\SysWOW64\\OneDriveSetup.exe"
+
     def run(self, cmd, timeout=None):
         self.cmds.append(cmd)
+        if cmd[:1] == [self.onedrive_setup()]: self.onedrive = (cmd[1:] != ["/uninstall"])
         if cmd[:2] == ["sc", "stop"]: self.corriendo.discard(cmd[2])
         if cmd[:2] == ["sc", "start"]: self.corriendo.add(cmd[2])
         if cmd[:2] == ["powercfg", "/getactivescheme"]:
@@ -77,7 +89,7 @@ class EntornoFalso(nucleo.Entorno):
     def detectar_equipo(self): return {"media": "SSD", "bateria": False, "impresoras": 0, "ram_gb": 8, "windows": "10.0"}
 
     def instantanea(self):
-        return copy.deepcopy((self.reg, self.corriendo, self.tareas, [(i.nombre, i.habilitado) for i in self.inicio], self.spi))
+        return copy.deepcopy((self.reg, self.corriendo, self.tareas, [(i.nombre, i.habilitado) for i in self.inicio], self.spi, self.onedrive))
 
 
 class WingetFalso:

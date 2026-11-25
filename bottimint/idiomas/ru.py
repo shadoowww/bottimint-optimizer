@@ -172,4 +172,7 @@ T = {
     'winget («Instalador de aplicaciones» de Microsoft) no está en este equipo.\n\nBottiMint puede instalarlo ahora: primero intenta registrarlo y, si no está, lo descarga de los servidores oficiales de Microsoft (github.com/microsoft y aka.ms, unos 20 MB) y Windows comprueba su firma.\n\nHace falta conexión a internet. ¿Instalarlo ahora?': 'winget («Установщик приложений» Microsoft) отсутствует на этом ПК.\n\nBottiMint может установить его сейчас: сначала пробует зарегистрировать, а если его нет — скачивает с официальных серверов Microsoft (github.com/microsoft и aka.ms, около 20 МБ), и Windows проверяет подпись.\n\nНужен доступ в интернет. Установить сейчас?',
     'winget quedó instalado. Ya podés instalar programas.': 'winget установлен. Теперь можно устанавливать программы.',
     'No se pudo instalar winget. Probá instalar «Instalador de aplicaciones» desde Microsoft Store. Mirá el registro para ver el detalle.': 'Не удалось установить winget. Попробуйте установить «Установщик приложений» из Microsoft Store. Подробности смотрите в журнале.',
+    'Trabajando… esperá a que termine, no cierres el programa.': 'Работаю… дождитесь завершения, не закрывайте программу.',
+    'Listo. Podés elegir lo que quieras.': 'Готово. Можно выбирать что угодно.',
+    'Terminó con un error. Mirá el registro de abajo.': 'Завершено с ошибкой. Смотрите журнал ниже.',
 }

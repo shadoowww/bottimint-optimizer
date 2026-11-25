@@ -12,7 +12,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Dict, List, Optional
 
-from . import ajustes as ajustes_mod, i18n, instalador, limpieza as base, nucleo, temas
+from . import __version__, ajustes as ajustes_mod, i18n, instalador, limpieza as base, nucleo, temas
 from .i18n import tr
 from .widgets import BotonRedondo, DialogoSiNo, SelectorNivel, Tarjeta
 
@@ -161,7 +161,7 @@ class App(tk.Tk):
         self.ruta_ajustes = ruta_ajustes
         self.ajustes = ajustes_mod.cargar(ruta_ajustes)
         i18n.set_idioma(self.ajustes["idioma"])
-        self.title("BottiMint")
+        self.title(f"BottiMint v{__version__}")
         self.geometry("1040x740")
         self.minsize(940, 640)
         self.env = env or nucleo.Entorno()
@@ -220,11 +220,21 @@ class App(tk.Tk):
                 pass
         if b:
             self.barra.configure(mode="indeterminate")
+            self.barra.pack(side="right")
             self.barra.start(12)
+            self.lbl_estado.configure(text="⏳ " + tr("Trabajando… esperá a que termine, no cierres el programa."), style="EstadoBusy.TLabel")
         else:
             self.barra.stop()
-            self.barra.configure(mode="determinate", value=0)
+            self.barra.pack_forget()
+            self._estado_listo()
         self._actualizar_cuenta()
+
+    def _estado_listo(self, error: bool = False) -> None:
+        """Mensaje fijo y claro de que el programa terminó y se puede seguir usando."""
+        if error:
+            self.lbl_estado.configure(text="⚠ " + tr("Terminó con un error. Mirá el registro de abajo."), style="EstadoBusy.TLabel")
+        else:
+            self.lbl_estado.configure(text="✅ " + tr("Listo. Podés elegir lo que quieras."), style="EstadoOk.TLabel")
 
     def _bombear(self) -> None:
         try:
@@ -241,6 +251,7 @@ class App(tk.Tk):
                     self._set_busy(False)
                     if error is not None:
                         self._escribir_log(f"ERROR: {error}")
+                        self._estado_listo(error=True)
                     elif hecho:
                         try:
                             hecho(resultado)
@@ -335,6 +346,7 @@ class App(tk.Tk):
         cab = ttk.Frame(self, padding=(12, 8, 12, 0))
         cab.pack(fill="x")
         ttk.Label(cab, text="BottiMint", style="Titulo.TLabel").pack(side="left")
+        ttk.Label(cab, text=f" v{__version__}", style="Sub.TLabel").pack(side="left", anchor="s", pady=(0, 4))
         ttk.Label(cab, text="   " + tr("Limpieza, optimización y programas para Windows"), style="Sub.TLabel").pack(side="left")
         # botón Salir (pide confirmación)
         self.btn_salir = BotonRedondo(cab, p, "⏻  " + tr("Salir"), self.salir, "peligro")
@@ -359,8 +371,12 @@ class App(tk.Tk):
 
         pie = ttk.Frame(self, padding=(12, 0, 12, 10))
         pie.pack(side="bottom", fill="x")  # primero el pie: así el registro nunca queda cortado
-        self.barra = ttk.Progressbar(pie, mode="determinate")
-        self.barra.pack(fill="x")
+        fila_estado = ttk.Frame(pie)
+        fila_estado.pack(fill="x")
+        self.lbl_estado = ttk.Label(fila_estado, text="", style="EstadoOk.TLabel")
+        self.lbl_estado.pack(side="left")
+        self.barra = ttk.Progressbar(fila_estado, mode="indeterminate", length=220)  # solo se ve mientras trabaja
+        self._estado_listo()
         caja = Tarjeta(pie, p, fondo=p["log"], alto=86)
         caja.pack(fill="x", pady=(6, 0))
         self.txt_log = tk.Text(caja.cuerpo, height=3, state="disabled", font=("Consolas", 9), bg=p["log"], fg=p["fg"],
@@ -505,10 +521,6 @@ class App(tk.Tk):
                                         ("estado", tr("En este equipo"), 300)], p, altura=7, al_elegir=self._detalle_cambio,
                                     al_cambiar=self._actualizar_cuenta)
         self.lista_opt.pack(fill="both", expand=True)
-        tarj_det = Tarjeta(f, p, fondo=p["caja3"], alto=84)
-        tarj_det.pack(fill="x", pady=(6, 0))
-        self.txt_det = self._caja_texto(tarj_det.cuerpo, p["caja3"], height=3, font=("Segoe UI", 9), padx=4, pady=2)
-        self.txt_det.pack(fill="both", expand=True)
         self._texto_nivel()
 
     def _texto_con_scroll(self, master, columna: int, fondo: str) -> tk.Text:
@@ -568,6 +580,7 @@ class App(tk.Tk):
         if nivel != self.nivel.get():
             return self._refrescar_plan()
         self.plan_actual = plan
+        self._texto_nivel()  # vuelve el resumen del nivel (puede haber quedado el detalle de un cambio)
         self._pintar_plan()
         self.log(tr("Vista previa lista: {n} cambios marcados de {total}.",
                     n=sum(1 for p in plan if p["seleccionado"]), total=len(plan)))
@@ -589,14 +602,15 @@ class App(tk.Tk):
         self.lista_opt.cargar(filas)
 
     def _detalle_cambio(self, iid: str) -> None:
+        """Al elegir una fila, el panel de la derecha muestra qué hace ese cambio y sus consecuencias."""
         p = next((x for x in self.plan_actual if x["id"] == iid), None)
         if not p:
             return
-        t = self.txt_det
+        t = self.txt_consec
         t.configure(state="normal")
         t.delete("1.0", "end")
-        t.insert("end", tr(p["titulo"]) + "\n")
-        t.insert("end", tr("Qué hace: {x}", x=tr(p["que_hace"])) + "\n" + tr("Consecuencia: {x}", x=tr(p["consecuencia"])) + "\n")
+        t.insert("end", tr(p["titulo"]) + "\n", "warn")
+        t.insert("end", tr("Qué hace: {x}", x=tr(p["que_hace"])) + "\n\n" + tr("Consecuencia: {x}", x=tr(p["consecuencia"])) + "\n\n")
         t.insert("end", tr("Riesgo: {x}", x=tr(p["riesgo"])) + "  ·  " +
                  (tr("Reversible con «Restaurar»") if p["reversible"] else tr("No reversible (archivos descartables / apps)")))
         t.configure(state="disabled")

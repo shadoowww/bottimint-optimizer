@@ -14,7 +14,7 @@ Herramienta para **Windows 10 / 11** para todo el mundo: limpia, optimiza por ni
 
 | Módulo | Qué incluye |
 |---|---|
-| **Optimización por niveles** | **Básico** (limpieza general) · **Profundo** (+ quitar apps y publicidad de fábrica, telemetría programada, programas de inicio) · **Extremo / Gaming** (+ servicios, procesos en segundo plano, efectos visuales, energía). Cada cambio explica **qué hace y qué consecuencia tiene**. |
+| **Optimización por niveles** | **Básico** (limpieza general) · **Profundo** (+ quitar apps y publicidad de fábrica, limpiar y desanclar el menú Inicio, apagar Copilot, desinstalar OneDrive (opcional), telemetría programada, programas de inicio) · **Extremo / Gaming** (+ servicios, procesos en segundo plano, efectos visuales, energía). Cada cambio explica **qué hace y qué consecuencia tiene**. |
 | **Restauración** | Antes de tocar nada crea un **punto de restauración de Windows** y verifica que exista (si falla, **no cambia nada**). Además guarda el estado original de cada ajuste y los deshace con un clic. |
 | **Programas** | Catálogo corto y curado (navegadores, esenciales, utilidades, desarrollo, **gaming**: Steam, Epic, Ubisoft, EA, GOG, Battle.net…, runtimes) con **perfiles** (oficina, gamer, herramientas). Instala con **winget**, en silencio. |
 | **Inicio de Windows** | Lista y habilita/deshabilita programas que arrancan con la PC (reversible). |
@@ -22,7 +22,7 @@ Herramienta para **Windows 10 / 11** para todo el mundo: limpia, optimiza por ni
 
 Detalle completo: [docs/NIVELES.md](docs/NIVELES.md) · [docs/PROGRAMAS.md](docs/PROGRAMAS.md) (en inglés).
 
-En una VM con Windows 11 (4 GB de RAM, 2 vCPU) los tres niveles bajaron el Administrador de tareas de **164 a 107 procesos** y de **3,4 a 1,9 GB** de memoria en uso ([informe con capturas y aclaraciones](docs/VM_TEST_REPORT.md)).
+En VMs de 4 GB los tres niveles bajaron el Administrador de tareas de **164 a 107 procesos** y de **3,4 a 1,9 GB** de memoria en uso en Windows 11, y de **144 a 89 procesos** y de **1,8 a 1,3 GB** en Windows 10 ([informe con capturas y aclaraciones](docs/VM_TEST_REPORT.md)).
 
 ## Cómo instalarlo
 
@@ -113,8 +113,8 @@ Sin dependencias externas para ejecutar (solo la biblioteca estándar).
 
 ## Hoja de ruta
 
-- [x] Prueba en VM con Windows 11 con mediciones antes/después ([informe](docs/VM_TEST_REPORT.md), en inglés).
-- [ ] Capturas reales de la app en Windows y pruebas en Windows 10.
+- [x] Pruebas en VM con Windows 11 y Windows 10 con mediciones antes/después ([informe](docs/VM_TEST_REPORT.md), en inglés).
+- [ ] Capturas reales de la app en Windows.
 - [ ] Más perfiles de instalación a pedido.
 - [ ] Firma digital del `.exe`.
 - [ ] Escaneo de seguridad básico (Defender, firewall, puertos y procesos sospechosos).

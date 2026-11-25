@@ -80,6 +80,10 @@ class PruebasGui(unittest.TestCase):
             app.destroy()
             gc.collect()
 
+    def test_el_titulo_muestra_la_version(self):
+        from bottimint import __version__
+        self.assertIn(__version__, self.app.title())
+
     def test_arranca_y_carga_plan_e_instalados(self):
         self.assertTrue(self.app.lista_opt.marcados())
         self.assertIn("google.chrome", self.app.instalados)
