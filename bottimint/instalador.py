@@ -30,6 +30,7 @@ import tempfile
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple
 
+from . import confiables
 from . import limpieza as base
 
 
@@ -158,7 +159,7 @@ class Winget:
 
     def __init__(self, run: Optional[Callable[..., Tuple[int, str]]] = None, base_dir: Optional[str] = None):
         self.run = run or base.ejecutar
-        self.base_dir = base_dir or os.path.join(os.environ.get("ProgramData", os.path.expanduser("~")), "BottiMint")
+        self.base_dir = base_dir or confiables.carpeta_de_datos()
 
     def disponible(self) -> bool:
         cod, out = self.run(["winget", "--version"], 30)

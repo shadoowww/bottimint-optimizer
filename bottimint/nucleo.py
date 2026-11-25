@@ -39,6 +39,7 @@ import sys
 import time
 from typing import Callable, Dict, List, Optional, Tuple
 
+from . import confiables
 from . import limpieza as base
 from .i18n import tr
 
@@ -140,7 +141,7 @@ APPS_PROTEGIDAS = ("Microsoft.WindowsStore", "Microsoft.WindowsCalculator", "Mic
 # ====================================================================
 class Entorno:
     def __init__(self, base_dir: Optional[str] = None):
-        self.base_dir = base_dir or os.path.join(os.environ.get("ProgramData", os.path.expanduser("~")), "BottiMint")
+        self.base_dir = base_dir or confiables.carpeta_de_datos()
         self._hives = {}
         if winreg:
             self._hives = {"HKLM": winreg.HKEY_LOCAL_MACHINE, "HKCU": winreg.HKEY_CURRENT_USER}
@@ -284,15 +285,15 @@ class Entorno:
 
     def onedrive_instalado(self) -> bool:
         """OneDrive es un programa de escritorio (no una app de la Tienda): se busca su ejecutable."""
-        rutas = [os.path.join(os.environ[v], *sub) for v, sub in
-                 (("LocalAppData", ("Microsoft", "OneDrive", "OneDrive.exe")),
-                  ("ProgramFiles", ("Microsoft OneDrive", "OneDrive.exe")),
-                  ("ProgramFiles(x86)", ("Microsoft OneDrive", "OneDrive.exe"))) if os.environ.get(v)]
+        rutas = [os.path.join(raiz, *sub) for raiz, sub in
+                 ((confiables.carpeta("localappdata"), ("Microsoft", "OneDrive", "OneDrive.exe")),
+                  (confiables.carpeta("programfiles"), ("Microsoft OneDrive", "OneDrive.exe")),
+                  (confiables.carpeta("programfilesx86"), ("Microsoft OneDrive", "OneDrive.exe"))) if raiz]
         return any(os.path.isfile(r) for r in rutas)
 
     def onedrive_setup(self) -> Optional[str]:
         """Instalador/desinstalador que trae Windows (queda en el sistema aunque se desinstale OneDrive)."""
-        raiz = os.environ.get("SystemRoot", "")
+        raiz = confiables.windows_dir()
         for sub in ("SysWOW64", "System32"):
             r = os.path.join(raiz, sub, "OneDriveSetup.exe")
             if raiz and os.path.isfile(r):
@@ -345,7 +346,7 @@ def _loc_appx_valida(loc: str) -> bool:
     """Una app de la Tienda solo se registra desde ...\\WindowsApps\\<paquete> (nada de rutas arbitrarias)."""
     if not loc or any(c in loc for c in "\"'`$;&|\n\r<>"):
         return False
-    pf = os.environ.get("ProgramFiles", r"C:\Program Files")
+    pf = confiables.carpeta("programfiles") or r"C:\Program Files"
     raiz = os.path.normcase(os.path.join(pf, "WindowsApps")) + os.sep
     return os.path.normcase(os.path.abspath(loc)).startswith(raiz)
 
@@ -1097,7 +1098,7 @@ def _informe(carpeta: str, manifest: dict, antes: dict, despues: dict, emitir) -
     texto = "\n".join(L)
     with open(os.path.join(carpeta, "informe.txt"), "w", encoding="utf-8") as f:
         f.write(texto)
-    escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
+    escritorio = confiables.carpeta("desktop")
     if os.path.isdir(escritorio):
         try:
             with open(os.path.join(escritorio, f"Informe_optimizacion_{manifest['sesion']}.txt"), "w", encoding="utf-8") as f:

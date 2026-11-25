@@ -4,6 +4,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semant
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-11-25
+
+Security release (hardening round 2). Two weaknesses found in a code review with an attacker's mindset and **reproduced before patching**; nothing was exploited outside a test machine and no one has reported abuse. Details in `docs/AUDITORIA_SEGURIDAD.md` (items 15 and 16).
+
+### Security
+- **System locations are no longer taken from environment variables.** With UAC, the elevated process inherits the environment of whoever launched it. With `SystemRoot`, `USERPROFILE` or `ProgramData` changed:
+  - the cleanup accepted real system folders (`C:\Windows\System32\drivers\etc`) and the real Documents folder, because the list of protected folders was built from those variables;
+  - `powershell.exe`, `sc.exe`, `reg.exe`... were launched from a fake `System32` with administrator rights;
+  - the manifests folder (`sesiones\`) followed a fake `ProgramData`.
+
+  Now the Windows folder, System32, Program Files, `ProgramData`, the user profile and its personal folders (Documents, Desktop, Pictures, Videos, Music, Downloads, Contacts, Favorites; including the real redirected ones, for example to OneDrive) are asked to Windows with `GetWindowsDirectoryW`, `GetSystemDirectoryW` and `SHGetKnownFolderPath`. New module `bottimint/confiables.py`; it is also used by `limpieza.env()`/`join_env()`, the OneDrive checks, the Appx location check, the desktop report and the data folder of `nucleo.py` and `instalador.py`. Outside Windows (CI, tests) the variables are still used as a fallback. `TEMP` still comes from the environment (it is a user setting) but goes through the protected-folders check.
+- **Executables are never searched for in the current folder or in PATH.** When a command was not in its expected folder (typically `winget`, which lives in each user's profile, for example when elevating with another administrator account), `resolver_exe()` returned the bare name and Windows looked for it first in the current folder (for example Downloads). A planted `winget.exe` would have run as administrator. Now it always returns an absolute path; if it does not exist the call fails with "command not found" (code 127) and nothing is run.
+- **The current directory is removed from the executable and DLL search at startup** (`NoDefaultCurrentDirectoryInExePath=1` and `SetDllDirectory("")`, inherited by child processes), as an extra layer.
+
+### Changed
+- If `winget` is missing for the account running the program, the "winget not available" notice appears as before; nothing else changes for the user. Normal use (same account, `winget` installed) is unaffected.
+
+### Tests
+- 95 tests (was 86): the two tests that checked the old behaviour (trusting the environment) were rewritten to check the opposite; new ones cover manipulated variables against the real Windows API, a decoy `winget.exe` in the current folder, a missing `winget` for another account, the data folder, startup hardening, and a guard that fails if any module reads `SystemRoot`/`ProgramData`/`USERPROFILE`... directly again. Verified: 9 of them fail against the 1.3.1 code.
+
+### Known limits (unchanged)
+- A user who is already an administrator can do everything BottiMint does; this release protects against a changed environment and planted files, not against that.
+- The `.exe` is still not code-signed, and PyInstaller's own bootloader loads its DLLs before this code runs.
+
 ## [1.3.1] - 2026-11-25
 
 ### Changed

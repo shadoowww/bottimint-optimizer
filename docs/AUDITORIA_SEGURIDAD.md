@@ -33,6 +33,8 @@ The injection tests (`PruebasInyeccion`, `PruebasManifiesto`) passed on the firs
 | 12 | **Installing winget** (new in 1.2.0): downloading code from the internet | Explicit confirmation; fixed Microsoft URLs only; Windows enforces the package signature and the publisher is verified after installing | `test_script_de_winget_solo_usa_servidores_oficiales_de_microsoft` |
 | 13 | **Tampered manifest for the new visual changes** (animations, wallpaper) | Only the known UI settings and values 0–2 are restored; the wallpaper path must be empty or a local drive path (no network paths) | `test_manifest_manipulado_no_cambia_ajustes_ajenos_ni_pone_fondos_raros` |
 | 14 | **Translated texts** breaking placeholders or opening an injection path in messages | `test_idiomas` checks that every translation keeps its placeholders | `test_idiomas.py` |
+| 15 | **System locations taken from environment variables** (found in the 1.3.2 round, reproduced before patching): with `SystemRoot`/`USERPROFILE` changed, the cleanup accepted `C:\Windows\System32\drivers\etc` and the real Documents folder; `resolver_exe("powershell")` returned a fake `powershell.exe` that was run; the manifests folder followed a fake `ProgramData`. The old test only checked the opposite case | New `confiables.py`: Windows folder, System32, known folders and the data folder come from the Windows API, not from the environment (fallback to variables only outside Windows) | `PruebasEntornoManipuladoReal`, `test_una_variable_de_entorno_manipulada_no_apunta_la_limpieza_a_carpetas_criticas`, `test_la_carpeta_de_datos_no_depende_de_la_variable_ProgramData`, `test_ningun_modulo_decide_rutas_del_sistema_con_variables_de_entorno` |
+| 16 | **Executable search in the current directory** (found in 1.3.2, reproduced with a decoy `winget.exe`): when a command was not found in its expected folder, `resolver_exe` returned the bare name and Windows searched the current folder first (e.g. Downloads) | Always an absolute path (a missing one gives "command not found", code 127); `endurecer_proceso()` removes the current directory from the executable and DLL search at startup | `test_un_ejecutable_inexistente_nunca_se_devuelve_como_nombre_desnudo`, `test_winget_sin_perfil_conocido_no_cae_a_una_ruta_relativa`, `test_el_directorio_actual_no_se_busca_para_ejecutar_comandos`, `test_winget_plantado_en_el_directorio_actual_no_se_ejecuta`, `test_endurecer_proceso_excluye_el_directorio_actual` |
 
 ## 3. Static analysis
 
@@ -40,7 +42,7 @@ The injection tests (`PruebasInyeccion`, `PruebasManifiesto`) passed on the firs
 
 ## 4. Tests
 
-- 82 tests in total (1 skipped on Linux: the real-junction one, which only runs on Windows).
+- 95 tests in total (the real-Windows ones - junction, environment and current-directory - are skipped on Linux and run in CI on `windows-latest`).
 - GUI tests run under `xvfb`; the rest run without a display.
 - They cover: links, dangerous paths, executables, injection, manifest, settings, languages, contrast and the exit confirmation.
 

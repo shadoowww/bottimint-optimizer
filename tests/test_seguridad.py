@@ -1,12 +1,35 @@
 """Pruebas de seguridad: enlaces/junctions, rutas absolutas, manifiestos manipulados, inyección y validación de datos."""
+import contextlib
 import json
 import os
+import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
 
-from bottimint import ajustes, instalador, limpieza, nucleo
+from bottimint import ajustes, confiables, instalador, limpieza, nucleo
 from tests.falsos import EntornoFalso, WingetFalso
+
+
+def _windows_falso(sr: str, perfil: str, pf: str = "", programdata: str = ""):
+    """Hace que 'Windows' (la API de confiables) devuelva estas ubicaciones, sea cual sea el sistema y el entorno."""
+    pila = contextlib.ExitStack()
+    pila.enter_context(mock.patch.object(confiables, "windows_dir", return_value=sr))
+    pila.enter_context(mock.patch.object(confiables, "system32", return_value=os.path.join(sr, "System32")))
+    pila.enter_context(mock.patch.object(confiables, "unidad_sistema", return_value=os.path.splitdrive(sr)[0] or "C:"))
+    datos = {"profile": perfil, "programfiles": pf, "programdata": programdata,
+             "localappdata": os.path.join(perfil, "AppData", "Local") if perfil else ""}
+    pila.enter_context(mock.patch.object(confiables, "carpeta", side_effect=lambda k: datos.get(k, "")))
+    return pila
+
+
+def _senuelo_en(carpeta: str, nombre: str = "zzsenuelo.exe") -> str:
+    """Un ejecutable inofensivo (whoami) con otro nombre, para comprobar si algo lo ejecuta desde donde no debe."""
+    destino = os.path.join(carpeta, nombre)
+    shutil.copy(os.path.join(confiables.windows_dir(), "System32", "whoami.exe"), destino)
+    return destino
 
 
 class PruebasEnlaces(unittest.TestCase):
@@ -65,12 +88,26 @@ class PruebasEjecutables(unittest.TestCase):
         os.makedirs(ps)
         for ruta in (os.path.join(ps, "powershell.exe"), os.path.join(sys32, "sc.exe")):
             open(ruta, "w").close()
-        with mock.patch.object(limpieza, "IS_WIN", True), mock.patch.dict(os.environ, {"SystemRoot": raiz}):
+        with mock.patch.object(limpieza, "IS_WIN", True), _windows_falso(raiz, tempfile.mkdtemp()):
             self.assertEqual(limpieza.resolver_exe("powershell"), os.path.join(ps, "powershell.exe"))
             self.assertEqual(limpieza.resolver_exe("sc"), os.path.join(sys32, "sc.exe"))
             self.assertEqual(limpieza.resolver_exe("sc.exe"), os.path.join(sys32, "sc.exe"))
-            self.assertEqual(limpieza.resolver_exe("noexiste"), "noexiste")           # no inventa rutas
             self.assertEqual(limpieza.resolver_exe(r"C:\x\y.exe"), r"C:\x\y.exe")      # respeta rutas explícitas
+
+    def test_un_ejecutable_inexistente_nunca_se_devuelve_como_nombre_desnudo(self):
+        """Un nombre sin ruta lo busca Windows en el directorio actual y en el PATH: siempre se devuelve ruta absoluta."""
+        raiz = tempfile.mkdtemp()
+        with mock.patch.object(limpieza, "IS_WIN", True), _windows_falso(raiz, tempfile.mkdtemp()):
+            for nombre in ("noexiste", "winget", "powershell", "DISM"):
+                r = limpieza.resolver_exe(nombre)
+                self.assertTrue(os.path.isabs(r), f"{nombre} -> {r}")
+                self.assertTrue(r.startswith(raiz) or "WindowsApps" in r, r)
+            self.assertEqual(limpieza.ejecutar([os.path.join(raiz, "System32", "noexiste.exe")])[0], 127)
+
+    def test_winget_sin_perfil_conocido_no_cae_a_una_ruta_relativa(self):
+        raiz = tempfile.mkdtemp()
+        with mock.patch.object(limpieza, "IS_WIN", True), _windows_falso(raiz, ""):  # sin LOCALAPPDATA
+            self.assertEqual(limpieza.resolver_exe("winget"), os.path.join(raiz, "System32", "winget.exe"))
 
     def test_fuera_de_windows_no_se_toca(self):
         with mock.patch.object(limpieza, "IS_WIN", False):
@@ -211,19 +248,122 @@ class PruebasAjustes(unittest.TestCase):
 
 class PruebasRutasProtegidas(unittest.TestCase):
     def test_una_variable_de_entorno_manipulada_no_apunta_la_limpieza_a_carpetas_criticas(self):
+        """Windows (la API) dice dónde está el sistema; las variables de entorno de un atacante no cuentan."""
         raiz = tempfile.mkdtemp()
         sr, perfil = os.path.join(raiz, "Windows"), os.path.join(raiz, "Users", "yo")
+        pf = os.path.join(raiz, "Program Files")
         for d in (os.path.join(sr, "System32", "config"), os.path.join(perfil, "Documents"), os.path.join(perfil, "AppData", "Temp"),
-                  os.path.join(raiz, "Program Files", "App")):
+                  os.path.join(pf, "App")):
             os.makedirs(d)
-        with mock.patch.dict(os.environ, {"SystemRoot": sr, "USERPROFILE": perfil, "ProgramFiles": os.path.join(raiz, "Program Files")}):
+        falso = tempfile.mkdtemp()  # lo que dice el atacante: un "sistema" que no existe
+        entorno = {"SystemRoot": falso, "windir": falso, "USERPROFILE": falso, "ProgramFiles": falso, "ProgramData": falso}
+        with _windows_falso(sr, perfil, pf), mock.patch.dict(os.environ, entorno):
             self.assertTrue(limpieza._es_ruta_peligrosa(os.path.join(sr, "System32", "config")))
             self.assertTrue(limpieza._es_ruta_peligrosa(os.path.join(perfil, "Documents")))
-            self.assertTrue(limpieza._es_ruta_peligrosa(os.path.join(raiz, "Program Files", "App")))
+            self.assertTrue(limpieza._es_ruta_peligrosa(os.path.join(pf, "App")))
             self.assertTrue(limpieza._es_ruta_peligrosa(perfil))
             self.assertFalse(limpieza._es_ruta_peligrosa(os.path.join(perfil, "AppData", "Temp")))
             self.assertEqual(limpieza.expandir([os.path.join(sr, "System32", "config")]), [])
+            self.assertEqual(limpieza.expandir([os.path.join(perfil, "Documents")]), [])
+            self.assertEqual(limpieza.env("SystemRoot"), sr)  # env() y join_env() también piden a Windows
+            self.assertEqual(limpieza.join_env("SystemRoot", "Temp"), os.path.join(sr, "Temp"))
 
+    def test_fuera_de_windows_se_siguen_usando_las_variables_de_entorno(self):
+        raiz = tempfile.mkdtemp()
+        with mock.patch.object(confiables, "IS_WIN", False), mock.patch.dict(os.environ, {"SystemRoot": raiz, "ProgramData": raiz}):
+            self.assertEqual(confiables.windows_dir(), raiz)
+            self.assertEqual(confiables.carpeta("programdata"), raiz)
+            self.assertEqual(confiables.carpeta_de_datos(), os.path.join(raiz, "BottiMint"))
+
+    def test_la_carpeta_de_datos_no_depende_de_la_variable_ProgramData(self):
+        datos, falso = tempfile.mkdtemp(), tempfile.mkdtemp()
+        with _windows_falso(tempfile.mkdtemp(), tempfile.mkdtemp(), programdata=datos), mock.patch.dict(os.environ, {"ProgramData": falso}):
+            self.assertEqual(nucleo.Entorno().base_dir, os.path.join(datos, "BottiMint"))
+            self.assertEqual(instalador.Winget().base_dir, os.path.join(datos, "BottiMint"))
+
+    def test_ningun_modulo_decide_rutas_del_sistema_con_variables_de_entorno(self):
+        """Guarda contra regresiones: SystemRoot, ProgramData, USERPROFILE... solo se leen en confiables.py."""
+        patron = re.compile(r"os\.environ(?:\.get\(|\[)\s*[\"'](SystemRoot|windir|ProgramData|ProgramFiles(?:\(x86\))?|USERPROFILE|"
+                            r"LOCALAPPDATA|SystemDrive)[\"']", re.I)
+        base = os.path.dirname(limpieza.__file__)
+        for nombre in os.listdir(base):
+            if nombre.endswith(".py") and nombre != "confiables.py":
+                with open(os.path.join(base, nombre), encoding="utf-8") as f:
+                    codigo = f.read()
+                self.assertIsNone(patron.search(codigo), f"{nombre} lee una variable de entorno que debe pedirse a confiables.py")
+
+    def test_endurecer_proceso_excluye_el_directorio_actual(self):
+        with mock.patch.object(confiables, "IS_WIN", True), mock.patch.dict(os.environ):
+            os.environ.pop("NoDefaultCurrentDirectoryInExePath", None)
+            confiables.endurecer_proceso()
+            self.assertEqual(os.environ.get("NoDefaultCurrentDirectoryInExePath"), "1")
+        with mock.patch.object(confiables, "IS_WIN", False), mock.patch.dict(os.environ):
+            os.environ.pop("NoDefaultCurrentDirectoryInExePath", None)
+            confiables.endurecer_proceso()  # fuera de Windows no hace nada
+            self.assertNotIn("NoDefaultCurrentDirectoryInExePath", os.environ)
+
+
+
+@unittest.skipUnless(os.name == "nt", "solo en Windows (en CI corre en windows-latest)")
+class PruebasEntornoManipuladoReal(unittest.TestCase):
+    """Con la API real de Windows: el entorno manipulado no cambia las rutas ni desprotege carpetas."""
+
+    def test_la_api_ignora_un_entorno_manipulado(self):
+        reales = {"win": confiables.windows_dir(), "sys32": confiables.system32(), "perfil": confiables.carpeta("profile"),
+                  "pd": confiables.carpeta("programdata"), "pf": confiables.carpeta("programfiles"),
+                  "docs": confiables.carpeta("documents")}
+        falso = tempfile.mkdtemp()
+        entorno = {v: falso for v in ("SystemRoot", "windir", "USERPROFILE", "ProgramData", "ProgramFiles", "LOCALAPPDATA")}
+        with mock.patch.dict(os.environ, entorno):
+            self.assertEqual(confiables.windows_dir(), reales["win"])
+            self.assertEqual(confiables.system32(), reales["sys32"])
+            self.assertEqual(confiables.carpeta("profile"), reales["perfil"])
+            self.assertEqual(confiables.carpeta("programdata"), reales["pd"])
+            self.assertEqual(confiables.carpeta("programfiles"), reales["pf"])
+            self.assertEqual(confiables.carpeta("documents"), reales["docs"])
+            # la limpieza sigue negándose a tocar el sistema y los archivos personales reales
+            for ruta in (os.path.join(reales["sys32"], "drivers", "etc"), reales["docs"], reales["perfil"], reales["pf"]):
+                self.assertTrue(limpieza._es_ruta_peligrosa(ruta), ruta)
+                self.assertEqual(limpieza.expandir([ruta]), [], ruta)
+            # y los comandos del sistema siguen saliendo del System32 real, no de uno falso
+            self.assertTrue(limpieza.resolver_exe("powershell").lower().startswith(reales["win"].lower()))
+            self.assertEqual(nucleo.Entorno().base_dir, os.path.join(reales["pd"], "BottiMint"))
+
+    def test_el_directorio_actual_no_se_busca_para_ejecutar_comandos(self):
+        carpeta = tempfile.mkdtemp()
+        _senuelo_en(carpeta)
+        anterior = os.getcwd()
+        with mock.patch.dict(os.environ):
+            os.environ.pop("NoDefaultCurrentDirectoryInExePath", None)
+            os.chdir(carpeta)
+            try:
+                try:  # control: sin la defensa, Windows SÍ ejecutaría el señuelo (si no, esta prueba no demostraría nada)
+                    subprocess.run(["zzsenuelo"], capture_output=True, timeout=10)
+                except FileNotFoundError:
+                    self.skipTest("este entorno ya excluye el directorio actual de la búsqueda")
+                self.assertEqual(limpieza.ejecutar(["zzsenuelo"], 10)[0], 127)  # ejecutar(): ruta absoluta, nunca el cwd
+                confiables.endurecer_proceso()
+                with self.assertRaises(FileNotFoundError):  # y con la defensa del proceso, ni el nombre desnudo
+                    subprocess.run(["zzsenuelo"], capture_output=True, timeout=10)
+            finally:
+                os.chdir(anterior)
+
+    def test_winget_plantado_en_el_directorio_actual_no_se_ejecuta(self):
+        carpeta = tempfile.mkdtemp()
+        _senuelo_en(carpeta, "winget.exe")
+        anterior, real = os.getcwd(), confiables.carpeta
+        # una cuenta de administrador distinta, sin winget instalado en su perfil
+        sin_winget = lambda k: os.path.join(carpeta, "otro_perfil") if k == "localappdata" else real(k)  # noqa: E731
+        with mock.patch.dict(os.environ), mock.patch.object(confiables, "carpeta", side_effect=sin_winget):
+            os.environ.pop("NoDefaultCurrentDirectoryInExePath", None)
+            os.chdir(carpeta)
+            try:
+                self.assertFalse(os.path.isfile(limpieza.resolver_exe("winget")))
+                self.assertTrue(os.path.isabs(limpieza.resolver_exe("winget")))
+                cod, salida = limpieza.ejecutar(["winget", "--version"], 30)
+                self.assertEqual(cod, 127, salida)  # no se ejecutó el winget.exe plantado en el directorio actual
+            finally:
+                os.chdir(anterior)
 
 
 @unittest.skipUnless(os.name == "nt", "solo en Windows (en CI corre en windows-latest)")

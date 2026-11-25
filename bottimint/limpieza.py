@@ -35,6 +35,8 @@ try:
 except ImportError:  # no estamos en Windows
     winreg = None
 
+from . import confiables
+
 IS_WIN = os.name == "nt"
 
 
@@ -68,7 +70,10 @@ def relaunch_as_admin() -> None:
 
 
 def env(nombre: str) -> str:
-    return os.environ.get(nombre, "")
+    """Valor de una variable de entorno, EXCEPTO las que definen carpetas del sistema (SystemRoot, SystemDrive,
+    USERPROFILE, ProgramData, ProgramFiles, LOCALAPPDATA, APPDATA...): esas se piden a Windows (ver confiables.py),
+    porque un entorno manipulado no debe poder desproteger carpetas ni redirigir ejecutables."""
+    return confiables.variable(nombre)
 
 
 def join_env(var: str, *partes: str) -> Optional[str]:
@@ -78,12 +83,15 @@ def join_env(var: str, *partes: str) -> Optional[str]:
 
 def _carpetas_protegidas() -> List[str]:
     """Carpetas dentro de las cuales NUNCA se limpia nada, aunque una variable de entorno (TEMP, etc.) apunte ahí."""
-    sr, perfil = env("SystemRoot"), env("USERPROFILE") or os.path.expanduser("~")
-    lista = [env("ProgramFiles"), env("ProgramFiles(x86)")]
+    sr, perfil = confiables.windows_dir(), confiables.carpeta("profile")
+    lista = [confiables.carpeta("programfiles"), confiables.carpeta("programfilesx86")]
     for sub in ("System32", "SysWOW64", "WinSxS", "servicing", "Boot", "Fonts", "assembly", "Microsoft.NET"):
         lista.append(os.path.join(sr, sub) if sr else "")
     for sub in ("Documents", "Desktop", "Pictures", "Videos", "Music", "Downloads", "OneDrive", "Contacts", "Favorites"):
         lista.append(os.path.join(perfil, sub) if perfil else "")
+    # además, las carpetas personales REALES (pueden estar redirigidas, por ejemplo a OneDrive)
+    lista += [confiables.carpeta(k) for k in ("documents", "desktop", "pictures", "videos", "music", "downloads",
+                                              "contacts", "favorites")]
     return [x for x in lista if x]
 
 
@@ -94,8 +102,9 @@ def _es_ruta_peligrosa(p: str) -> bool:
     if os.path.dirname(p) == p:  # raíz de unidad
         return True
     prohibidas = {os.path.normcase(os.path.realpath(x)) for x in
-                  (env("USERPROFILE"), env("SystemRoot"), env("SystemDrive") + "\\", env("ProgramFiles"),
-                   env("ProgramFiles(x86)"), env("ProgramData"), os.path.expanduser("~")) if x}
+                  (confiables.carpeta("profile"), confiables.windows_dir(), confiables.unidad_sistema() + "\\",
+                   confiables.carpeta("programfiles"), confiables.carpeta("programfilesx86"),
+                   confiables.carpeta("programdata"), os.path.expanduser("~")) if x}
     if p in prohibidas:
         return True
     for q in _carpetas_protegidas():
@@ -238,13 +247,15 @@ def limpiar_rutas(rutas: List[str]):
 # ============================== ejecución segura de comandos ==============================
 
 def _dir_sistema() -> str:
-    return os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32")
+    return confiables.system32()
 
 
 def resolver_exe(nombre: str) -> str:
     """Ruta ABSOLUTA del ejecutable. En Windows, los comandos del sistema se toman de System32 y nunca del
     directorio actual ni del PATH (evita que un powershell.exe/sc.exe plantado en esa carpeta se ejecute con
-    privilegios de administrador). Si ya viene con ruta, se respeta."""
+    privilegios de administrador). Si ya viene con ruta, se respeta.
+    SIEMPRE devuelve una ruta absoluta en Windows: si el ejecutable no existe NO se devuelve el nombre desnudo (Windows
+    lo buscaría en el directorio actual y en el PATH); la ruta inexistente hace que ejecutar() informe "no se encontró"."""
     if not IS_WIN or os.path.dirname(nombre):
         return nombre
     base_ = nombre.lower()
@@ -254,10 +265,11 @@ def resolver_exe(nombre: str) -> str:
     if base_ == "powershell":
         cand = os.path.join(sys32, "WindowsPowerShell", "v1.0", "powershell.exe")
     elif base_ == "winget":
-        cand = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "WindowsApps", "winget.exe")
+        local = confiables.carpeta("localappdata")
+        cand = os.path.join(local, "Microsoft", "WindowsApps", "winget.exe") if local else os.path.join(sys32, "winget.exe")
     else:
         cand = os.path.join(sys32, base_ + ".exe")
-    return cand if os.path.isfile(cand) else nombre
+    return cand
 
 
 def preparar_dir_datos(ruta: str) -> str:
@@ -603,9 +615,9 @@ class Motor:
         ahora = datetime.datetime.now()
         antes = getattr(self, "_antes", None) or info_sistema()
         despues = getattr(self, "_despues", None) or antes
-        carpeta = os.path.join(os.path.expanduser("~"), "Desktop")
+        carpeta = confiables.carpeta("desktop")
         if not os.path.isdir(carpeta):
-            carpeta = os.path.expanduser("~")
+            carpeta = confiables.carpeta("profile")
         ruta = os.path.join(carpeta, f"Informe_mantenimiento_{ahora:%Y%m%d_%H%M}.txt")
         L = ["BottiMint - INFORME DE MANTENIMIENTO", "=" * 50,
              f"Fecha: {ahora:%d/%m/%Y %H:%M}", ""]

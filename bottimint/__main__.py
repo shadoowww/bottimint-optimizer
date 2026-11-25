@@ -10,7 +10,8 @@ import sys
 
 
 def main() -> None:
-    from . import ajustes, i18n
+    from . import ajustes, confiables, i18n
+    confiables.endurecer_proceso()  # lo primero: el directorio actual no entra en la búsqueda de ejecutables ni DLL
     i18n.set_idioma(ajustes.cargar()["idioma"])  # la consola también habla el idioma elegido
     args = sys.argv[1:]
     if not args or args[0] == "gui":
