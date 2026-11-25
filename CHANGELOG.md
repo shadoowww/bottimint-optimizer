@@ -4,6 +4,34 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semant
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-11-25
+
+### Changed
+- **Performance: checking the machine and choosing a level is much faster.** Measured on a real Windows 10 machine, against 1.3.2 (all read-only; nothing that changes the system was touched):
+
+  | Step | Before | Now |
+  |---|---|---|
+  | Startup (detect machine + system info + winget + installed programs) | 4.8 s | 2.8 s |
+  | Preview of Deep level, first time | 3.0 s | 1.0 s |
+  | Preview of Extreme level, first time | 2.6 s | 1.0 s |
+  | Going Basic > Deep > Extreme > Basic > Deep > Extreme | 10.6 s | 1.0 s |
+
+  What was done:
+  - **Startup reads run at the same time.** Detecting the machine, the system info, winget and the installed-programs list (`winget export`, the slowest) are independent: before they ran one after another.
+  - **The preview checks the changes in parallel** (up to 8 read-only queries at once, in order-preserving fashion) and, when the machine was not detected yet, detects it at the same time.
+  - **Switching level reuses what was already checked.** Levels are cumulative and what each change reports does not depend on the level, so going up a level only checks the new changes, and going down checks nothing. The "Update preview" button, applying and restoring still check everything again, because the system may have changed.
+  - **The preview no longer reads each app's install location** (`InstallLocation` was ~1.1 s of the 1.6 s that `Get-AppxPackage` took; the preview only needs the names). Applying still reads it, because it is saved in the session to be able to re-register the app when restoring.
+- The results are exactly the same as before: same changes, same "applies / does not apply" and same default selection (verified on a real machine for the three levels, with and without the reuse).
+- `Entorno.listar_appx()` now takes `ubicacion` (default `True`, the previous behaviour). A custom environment that overrides it must accept that argument.
+
+### Not changed (on purpose)
+- **Applying a level** (restore point, removing apps, disabling tasks and services, restoring) runs exactly as before. Its slowest step, one PowerShell per app removed, could be batched, but it changes the system and it should be tested in a virtual machine first (`docs/PRUEBAS_VM.md`).
+- `detectar_equipo()` (~2.3 s, one PowerShell call) is unchanged: it now overlaps with other reads instead of waiting for them.
+- Measured and discarded: sending the app list as plain text instead of JSON (no faster, the cost is reading the install location, not the JSON).
+
+### Tests
+- 104 tests (was 95): the parallel preview gives the same results in the same order as checking one by one; reuse between levels (only new changes are checked, same result as checking everything, clearing it forces a new check); one single `Get-AppxPackage` even with parallel checks; one machine detection; a failing change does not break the rest; the preview does not ask for the install location but applying does (and saves it); the GUI checks each level once per session and "Update preview" checks again; startup detects installed programs only once.
+
 ## [1.3.2] - 2026-11-25
 
 Security release (hardening round 2). Two weaknesses found in a code review with an attacker's mindset and **reproduced before patching**; nothing was exploited outside a test machine and no one has reported abuse. Details in `docs/AUDITORIA_SEGURIDAD.md` (items 15 and 16).

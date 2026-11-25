@@ -27,6 +27,7 @@ Uso (consola, como administrador):
 
 """
 import argparse
+import concurrent.futures
 import contextlib
 import ctypes
 import datetime
@@ -36,6 +37,7 @@ import os
 import platform
 import re
 import sys
+import threading
 import time
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -248,12 +250,13 @@ class Entorno:
         if "listar_appx" in self.__dict__:  # ya hay una caché activa (uso anidado)
             yield
             return
-        original, memo = self.listar_appx, []
+        original, memo, cerrojo = self.listar_appx, {}, threading.Lock()
 
-        def con_cache() -> List[dict]:
-            if not memo:
-                memo.append(original())
-            return list(memo[0])
+        def con_cache(ubicacion: bool = True) -> List[dict]:
+            with cerrojo:  # plan() evalúa en paralelo: solo UN hilo consulta a Windows, los demás esperan y reutilizan
+                if ubicacion not in memo:
+                    memo[ubicacion] = original(ubicacion=ubicacion)
+            return list(memo[ubicacion])
         self.listar_appx = con_cache
         try:
             yield
@@ -265,8 +268,11 @@ class Entorno:
         return self.ps(f"{cmd} -TaskPath {ps_str(ruta)} -TaskName {ps_str(nombre)} | Out-Null")[0] == 0
 
     # --- apps de la Tienda ---
-    def listar_appx(self) -> List[dict]:
-        cod, out = self.ps("Get-AppxPackage | Select-Object Name,PackageFullName,InstallLocation | ConvertTo-Json -Compress", 180)
+    def listar_appx(self, ubicacion: bool = True) -> List[dict]:
+        """Apps de la Tienda. `ubicacion=False` omite InstallLocation: leerla es lo más lento (~1,1 de 1,6 s), y solo
+        hace falta al aplicar (para poder re-registrar la app al restaurar). La vista previa solo usa los nombres."""
+        props = "Name,PackageFullName,InstallLocation" if ubicacion else "Name,PackageFullName"
+        cod, out = self.ps(f"Get-AppxPackage | Select-Object {props} | ConvertTo-Json -Compress", 180)
         try:
             datos = json.loads(out)
         except ValueError:
@@ -582,9 +588,9 @@ class CambioApps(Cambio):
         super().__init__(id, nivel, grupo, titulo, que_hace, consecuencia, riesgo, defecto)
         self.patrones = patrones
 
-    def _coinciden(self, env):
+    def _coinciden(self, env, ubicacion: bool = True):
         out = []
-        for p in env.listar_appx():
+        for p in env.listar_appx(ubicacion=ubicacion):
             nombre = p.get("Name", "")
             if any(fnmatch.fnmatch(nombre.lower(), pat.lower()) for pat in self.patrones) and \
                not any(fnmatch.fnmatch(nombre.lower(), prot.lower()) for prot in APPS_PROTEGIDAS):
@@ -592,7 +598,7 @@ class CambioApps(Cambio):
         return out
 
     def aplica(self, env):
-        c = self._coinciden(env)
+        c = self._coinciden(env, ubicacion=False)  # la vista previa solo necesita los nombres (3,5x más rápido)
         return bool(c), (f"{len(c)} apps: " + ", ".join(sorted({p['Name'] for p in c}))) if c else "no hay apps de la lista"
 
     def aplicar(self, env, emitir, estado):
@@ -988,19 +994,40 @@ def cambios_del_nivel(nivel: str) -> List[Cambio]:
     return [c for c in CATALOGO if ORDEN.index(c.nivel) <= tope]
 
 
-def plan(nivel: str, env: Entorno, equipo: Optional[dict] = None) -> List[dict]:
-    """Vista previa: qué haría cada cambio EN ESTE equipo, sin modificar nada."""
-    equipo = equipo if equipo is not None else env.detectar_equipo()
+HILOS_PLAN = 8  # consultas de solo lectura a Windows a la vez (cada una suele ser un PowerShell). Más que las
+# 5 evaluaciones de apps que esperan la misma consulta: si no, ocuparían todos los hilos y dejarían en cola a las demás.
+
+
+def plan(nivel: str, env: Entorno, equipo: Optional[dict] = None, cache: Optional[dict] = None) -> List[dict]:
+    """Vista previa: qué haría cada cambio EN ESTE equipo, sin modificar nada.
+
+    Las consultas a Windows (solo lectura) se hacen en paralelo, y la detección del equipo corre a la vez si no se
+    pasó `equipo`. `cache` ({id: (aplica, detalle)}) permite reutilizar lo ya evaluado: los niveles son acumulativos y
+    lo que dice cada cambio no depende del nivel, así que al subir de nivel solo se evalúan los cambios nuevos.
+    Quien pase `cache` debe vaciarlo cuando el estado del sistema pueda haber cambiado (por ejemplo, tras aplicar)."""
+    cambios = cambios_del_nivel(nivel)
+    cache = cache if cache is not None else {}
+    pendientes = [c for c in cambios if c.id not in cache]
+
+    def evaluar(c: Cambio):
+        try:
+            return c.id, c.aplica(env)
+        except Exception as ex:
+            return c.id, (False, f"no se pudo evaluar: {ex}")
+
+    # las 5 apps consultan la misma lista de paquetes: se pide una sola vez (ver lecturas_en_cache)
+    with env.lecturas_en_cache(), concurrent.futures.ThreadPoolExecutor(max_workers=HILOS_PLAN) as hilos:
+        detectando = hilos.submit(env.detectar_equipo) if equipo is None else None
+        for id_, resultado in hilos.map(evaluar, pendientes):
+            cache[id_] = resultado
+        if detectando is not None:
+            equipo = detectando.result()
     res = []
-    with env.lecturas_en_cache():  # las 5 apps consultan la misma lista de paquetes: se pide una sola vez
-        for c in cambios_del_nivel(nivel):
-            try:
-                aplica, detalle = c.aplica(env)
-            except Exception as ex:
-                aplica, detalle = False, f"no se pudo evaluar: {ex}"
-            res.append({"id": c.id, "nivel": c.nivel, "grupo": c.grupo, "titulo": c.titulo, "que_hace": c.que_hace,
-                        "consecuencia": c.consecuencia, "riesgo": c.riesgo, "reversible": c.reversible,
-                        "aplica": aplica, "detalle": detalle, "seleccionado": aplica and c.defecto(equipo)})
+    for c in cambios:
+        aplica, detalle = cache[c.id]
+        res.append({"id": c.id, "nivel": c.nivel, "grupo": c.grupo, "titulo": c.titulo, "que_hace": c.que_hace,
+                    "consecuencia": c.consecuencia, "riesgo": c.riesgo, "reversible": c.reversible,
+                    "aplica": aplica, "detalle": detalle, "seleccionado": aplica and c.defecto(equipo)})
     return res
 
 

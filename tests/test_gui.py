@@ -102,6 +102,46 @@ class PruebasGui(unittest.TestCase):
         app.lista_opt.marcar_todo(True)
         self.assertEqual(str(app.btn_aplicar.cget("state")), "normal")
 
+    def test_cambiar_de_nivel_reutiliza_lo_evaluado_y_actualizar_vuelve_a_consultar(self):
+        from bottimint import gui, instalador, nucleo
+
+        class Contador(EntornoFalso):
+            apps = 0
+
+            def listar_appx(self, ubicacion=True):
+                Contador.apps += 1
+                return super().listar_appx(ubicacion)
+        Contador.apps = 0
+        app = gui.App(Contador(tempfile.mkdtemp()), instalador.Winget(WingetFalso(), tempfile.mkdtemp()), ruta_ajustes=self.ruta_aj)
+        try:
+            app.aviso = lambda *a, **k: None
+            self.assertTrue(self.esperar(app, lambda: not app.busy and app.plan_actual and app.instalados))
+            self.assertEqual(Contador.apps, 0)  # Básico no consulta las apps
+            for nivel in ("profundo", "extremo", "basico", "profundo", "extremo"):
+                app.nivel.set(nivel)
+                app._cambio_nivel()
+                esperado = len(nucleo.cambios_del_nivel(nivel))
+                self.assertTrue(self.esperar(app, lambda: not app.busy and len(app.plan_actual) == esperado), nivel)
+            self.assertEqual(Contador.apps, 1)  # una sola consulta en toda la sesión, no una por cada cambio de nivel
+            app._refrescar_plan()  # «Actualizar vista previa»: fuerza volver a mirar el equipo
+            self.assertTrue(self.esperar(app, lambda: not app.busy and Contador.apps == 2))
+        finally:
+            app.destroy()
+            gc.collect()
+
+    def test_la_carga_inicial_detecta_los_programas_instalados_una_sola_vez(self):
+        from bottimint import gui, instalador
+        run = WingetFalso()
+        app = gui.App(EntornoFalso(tempfile.mkdtemp()), instalador.Winget(run, tempfile.mkdtemp()), ruta_ajustes=self.ruta_aj)
+        try:
+            self.assertTrue(self.esperar(app, lambda: not app.busy and app.plan_actual and app.instalados))
+            self.esperar(app, lambda: False, 0.5)  # margen por si hubiera una segunda detección pendiente
+            self.assertEqual(sum(1 for c in run.log if c[:2] == ["winget", "export"]), 1)
+            self.assertIn("google.chrome", app.instalados)
+        finally:
+            app.destroy()
+            gc.collect()
+
     def test_cambiar_de_nivel_recarga_el_plan(self):
         n_basico = len(self.app.plan_actual)
         self.app.nivel.set("extremo")

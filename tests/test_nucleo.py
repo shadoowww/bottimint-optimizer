@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 from bottimint import nucleo
 from tests.falsos import EntornoFalso
@@ -177,9 +178,9 @@ class PruebasNucleo(unittest.TestCase):
         class Contador(EntornoFalso):
             llamadas = 0
 
-            def listar_appx(self):
+            def listar_appx(self, ubicacion=True):
                 Contador.llamadas += 1
-                return super().listar_appx()
+                return super().listar_appx(ubicacion)
         env = Contador(tempfile.mkdtemp())
         con_cache = nucleo.plan("profundo", env, env.detectar_equipo())
         self.assertEqual(Contador.llamadas, 1)  # antes: una por cada cambio de apps
@@ -194,9 +195,9 @@ class PruebasNucleo(unittest.TestCase):
         class Contador(EntornoFalso):
             llamadas = 0
 
-            def listar_appx(self):
+            def listar_appx(self, ubicacion=True):
                 Contador.llamadas += 1
-                return super().listar_appx()
+                return super().listar_appx(ubicacion)
         env = Contador(tempfile.mkdtemp())
         with env.lecturas_en_cache():
             with env.lecturas_en_cache():
@@ -205,6 +206,104 @@ class PruebasNucleo(unittest.TestCase):
         self.assertEqual(Contador.llamadas, 1)
         env.listar_appx()
         self.assertEqual(Contador.llamadas, 2)
+
+    def test_plan_en_paralelo_da_lo_mismo_y_en_el_mismo_orden(self):
+        env = EntornoFalso(tempfile.mkdtemp())
+        eq = env.detectar_equipo()
+        for nivel in nucleo.ORDEN:
+            p = nucleo.plan(nivel, env, eq)
+            self.assertEqual([x["id"] for x in p], [c.id for c in nucleo.cambios_del_nivel(nivel)])
+            for x in p:  # lo mismo que evaluar uno por uno, en serie
+                aplica, detalle = nucleo.POR_ID[x["id"]].aplica(env)
+                self.assertEqual((x["aplica"], x["detalle"]), (aplica, detalle), x["id"])
+
+    def test_plan_con_cache_solo_evalua_lo_nuevo_y_da_lo_mismo(self):
+        class Contador(EntornoFalso):
+            apps = 0
+
+            def listar_appx(self, ubicacion=True):
+                Contador.apps += 1
+                return super().listar_appx(ubicacion)
+        env, cache = Contador(tempfile.mkdtemp()), {}
+        eq = env.detectar_equipo()
+        nucleo.plan("basico", env, eq, cache)
+        self.assertEqual(Contador.apps, 0)
+        nucleo.plan("profundo", env, eq, cache)
+        self.assertEqual(Contador.apps, 1)
+        con_cache = nucleo.plan("extremo", env, eq, cache)  # las apps ya estaban evaluadas: no se vuelve a preguntar
+        self.assertEqual(Contador.apps, 1)
+        self.assertEqual(len(cache), len(nucleo.cambios_del_nivel("extremo")))
+        self.assertEqual(con_cache, nucleo.plan("extremo", env, eq))  # idéntico a evaluar todo de cero
+        cache.clear()  # forzar: vuelve a consultar a Windows
+        nucleo.plan("extremo", env, eq, cache)
+        self.assertEqual(Contador.apps, 2 + 1)  # +1 por la comparación sin caché de arriba
+
+    def test_plan_solo_una_consulta_de_apps_aunque_se_evalue_en_paralelo(self):
+        import time
+
+        class Lento(EntornoFalso):
+            apps = 0
+
+            def listar_appx(self, ubicacion=True):
+                Lento.apps += 1
+                time.sleep(0.15)  # fuerza que las 5 evaluaciones de apps se solapen
+                return super().listar_appx(ubicacion)
+        env = Lento(tempfile.mkdtemp())
+        nucleo.plan("profundo", env, env.detectar_equipo())
+        self.assertEqual(Lento.apps, 1)
+
+    def test_la_vista_previa_no_pide_la_ubicacion_de_las_apps_pero_aplicar_si(self):
+        """InstallLocation es lo más lento de leer y solo hace falta al aplicar: sin ella no se podría re-registrar la app."""
+        class Registro(EntornoFalso):
+            pedidos = []
+
+            def listar_appx(self, ubicacion=True):
+                Registro.pedidos.append(ubicacion)
+                return super().listar_appx(ubicacion)
+        Registro.pedidos = []
+        env = Registro(tempfile.mkdtemp())
+        nucleo.plan("profundo", env, env.detectar_equipo())
+        self.assertEqual(set(Registro.pedidos), {False})
+        Registro.pedidos = []
+        ses = nucleo.aplicar("profundo", env, ["apps_bloat"], emitir=lambda s: None)
+        self.assertIn(True, Registro.pedidos)
+        with open(os.path.join(env.base_dir, "sesiones", ses, "manifest.json"), encoding="utf-8") as f:
+            apps = json.load(f)["cambios"][0]["estado"]["apps"]
+        self.assertTrue(apps and all(a.get("loc") for a in apps), "el manifiesto debe guardar la ubicación de cada app quitada")
+
+    def test_listar_appx_real_solo_lee_la_ubicacion_cuando_se_pide(self):
+        scripts = []
+        env = nucleo.Entorno(tempfile.mkdtemp())
+        env.ps = lambda s, t=300: scripts.append(s) or (0, "[]")
+        env.listar_appx(ubicacion=False)
+        env.listar_appx()
+        self.assertNotIn("InstallLocation", scripts[0])
+        self.assertIn("InstallLocation", scripts[1])
+        self.assertEqual([env.listar_appx(ubicacion=False)], [[]])  # salida vacía o ilegible: lista vacía, no error
+
+    def test_plan_detecta_el_equipo_una_sola_vez_si_no_se_lo_dan(self):
+        class Contador(EntornoFalso):
+            veces = 0
+
+            def detectar_equipo(self):
+                Contador.veces += 1
+                return super().detectar_equipo()
+        env = Contador(tempfile.mkdtemp())
+        p = nucleo.plan("extremo", env)
+        self.assertEqual(Contador.veces, 1)
+        self.assertTrue(any(x["seleccionado"] for x in p))
+        nucleo.plan("extremo", env, env.detectar_equipo())
+        self.assertEqual(Contador.veces, 2)  # con equipo dado (+1 por la llamada de arriba), no se vuelve a detectar
+
+    def test_plan_un_cambio_que_falla_al_evaluar_no_rompe_a_los_demas(self):
+        env = EntornoFalso(tempfile.mkdtemp())
+        malo = nucleo.POR_ID["svc_xbox"]
+        with mock.patch.object(malo, "aplica", side_effect=RuntimeError("boom")):  # solo ESTE cambio falla
+            p = {x["id"]: x for x in nucleo.plan("extremo", env, env.detectar_equipo())}
+        self.assertFalse(p["svc_xbox"]["aplica"])
+        self.assertIn("no se pudo evaluar", p["svc_xbox"]["detalle"])
+        self.assertTrue(p["svc_telemetria"]["aplica"])  # otro cambio del mismo tipo sigue evaluándose bien
+        self.assertEqual(len(p), len(nucleo.cambios_del_nivel("extremo")))
 
     def test_tareas_estado_usa_un_solo_powershell(self):
         env = EntornoFalso(tempfile.mkdtemp())

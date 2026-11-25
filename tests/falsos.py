@@ -81,7 +81,7 @@ class EntornoFalso(nucleo.Entorno):
 
     def tarea_estado(self, r, n): return self.tareas.get((r, n), "NOEXISTE")
     def tarea_set(self, r, n, h): self.tareas[(r, n)] = "Ready" if h else "Disabled"; return True
-    def listar_appx(self): return list(self.apps)
+    def listar_appx(self, ubicacion=True): return list(self.apps)
     def quitar_appx(self, f): self.apps = [a for a in self.apps if a["PackageFullName"] != f]; return True
     def registrar_appx(self, l): return False
     def listar_inicio(self): return self.inicio

@@ -5,6 +5,7 @@ Tema claro/oscuro y varios idiomas: al cambiar cualquiera de los dos, la ventana
 el estado (plan, programas detectados, registro). Las tareas largas corren en un hilo aparte; la interfaz solo se
 toca desde el hilo principal (los hilos se comunican por una cola). Los diálogos son métodos para poder probarlos.
 """
+import concurrent.futures
 import os
 import queue
 import threading
@@ -170,6 +171,7 @@ class App(tk.Tk):
         self.busy = False
         self.equipo: dict = {}
         self.plan_actual: List[dict] = []
+        self._cache_plan: dict = {}  # {id de cambio: (aplica, detalle)} de la vista previa; se vacía al forzar
         self.instalados: set = set()
         self._deteccion_inicial = False
         self.winget_ok: Optional[bool] = None
@@ -446,17 +448,29 @@ class App(tk.Tk):
         base.relaunch_as_admin()
         self.destroy()
 
+    def _winget_e_instalados(self):
+        """(winget disponible, programas instalados o None). `winget export` es lo más lento: se hace aquí, a la vez
+        que se detecta el equipo, en vez de esperar a que termine todo lo demás."""
+        ok = self.wg.disponible()
+        return ok, (set(self.wg.instalados()) if (base.IS_WIN or ok) else None)
+
     def _carga_inicial(self):
-        equipo = self.env.detectar_equipo()
-        info = base.info_sistema()
-        winget_ok = self.wg.disponible()
-        return equipo, info, winget_ok
+        # tres lecturas independientes: se hacen a la vez (antes, una detrás de otra: ~5,5 s; ahora, lo que tarde la más lenta)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as hilos:
+            f_equipo = hilos.submit(self.env.detectar_equipo)
+            f_info = hilos.submit(base.info_sistema)
+            f_winget = hilos.submit(self._winget_e_instalados)
+            winget_ok, instalados = f_winget.result()
+            return f_equipo.result(), f_info.result(), winget_ok, instalados
 
     def _tras_carga_inicial(self, res) -> None:
-        self._res_inicial = res
+        self._res_inicial = res[:3]  # (equipo, info, winget_ok): lo que usa _aplicar_info
         self.equipo = res[0]
         self._aplicar_info()
-        self._refrescar_plan()  # al terminar, detecta los programas instalados (ver _mostrar_plan)
+        if res[3] is not None:  # ya se detectaron los programas instalados: no hace falta repetirlo después
+            self._deteccion_inicial = True
+            self._tras_detectar(res[3])
+        self._refrescar_plan()  # si no se detectaron antes, lo hace _mostrar_plan al terminar
 
     def _aplicar_info(self) -> None:
         if not self._res_inicial:
@@ -546,7 +560,7 @@ class App(tk.Tk):
 
     def _cambio_nivel(self) -> None:
         self._texto_nivel()
-        self._refrescar_plan()
+        self._refrescar_plan(forzar=False)  # los niveles son acumulativos: solo se evalúa lo que aún no se evaluó
 
     def _texto_nivel(self) -> None:
         n = nucleo.NIVELES[self.nivel.get()]
@@ -567,18 +581,23 @@ class App(tk.Tk):
         for t in (izq, der):
             t.configure(state="disabled")
 
-    def _refrescar_plan(self) -> None:
+    def _refrescar_plan(self, forzar: bool = True) -> None:
+        """Vista previa del nivel elegido. `forzar=True` (botón «Actualizar», tras aplicar o restaurar) vuelve a consultar
+        a Windows todo; con `forzar=False` (cambio de nivel) se reutiliza lo ya evaluado en esta sesión."""
         nivel = self.nivel.get()
         if self.busy:
-            self.after(500, self._refrescar_plan)
+            self.after(500, lambda: self._refrescar_plan(forzar))
             return
+        if forzar:
+            self._cache_plan.clear()
         self.log(tr("Revisando el equipo (solo lectura, no se modifica nada) para el nivel {nivel}...", nivel=tr(NIVEL_NOMBRE[nivel])))
-        self._tarea(lambda: (nivel, nucleo.plan(nivel, self.env, self.equipo or None)), self._mostrar_plan)
+        cache, equipo = self._cache_plan, self.equipo or None
+        self._tarea(lambda: (nivel, nucleo.plan(nivel, self.env, equipo, cache)), self._mostrar_plan)
 
     def _mostrar_plan(self, res) -> None:
         nivel, plan = res
         if nivel != self.nivel.get():
-            return self._refrescar_plan()
+            return self._refrescar_plan(forzar=False)
         self.plan_actual = plan
         self._texto_nivel()  # vuelve el resumen del nivel (puede haber quedado el detalle de un cambio)
         self._pintar_plan()
