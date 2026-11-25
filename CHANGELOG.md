@@ -4,6 +4,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semant
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-25
+
+### Changed
+- **Performance: the preview (`plan()`) of the Deep and Extreme levels is about 6x faster** (measured on a real Windows 10 machine: ~17 s -> ~3 s). The time was spent launching many separate PowerShell processes (~1-1.6 s each) for read-only queries:
+  - Scheduled tasks: `tareas_telemetria` started one PowerShell per task (8 tasks, ~8-9 s). New `Entorno.tareas_estado()` reads all tasks with a single PowerShell call (~1 s) and filters them in Python, so no task name is ever interpolated into a script. Names are matched case-insensitively, like Windows does. If the listing fails or cannot be parsed, it falls back to the previous per-task query.
+  - Store apps: the 5 app changes (`apps_bloat`, `apps_opcionales`, `apps_inicio`, `apps_xbox`, `apps_extra`) each ran `Get-AppxPackage` to get the same list (5 x ~1.6 s). New `Entorno.lecturas_en_cache()` makes `plan()` ask Windows only once. The cache lives only inside `plan()` and is removed when it ends; `aplicar()` does not use it because the list changes while apps are being removed.
+  - `CambioTareas.aplicar()` also reads the task states in one call instead of one per task.
+- The preview shows exactly the same results as before (same changes, same "applies / does not apply" and same default selection); only the waiting time changed. Verified against the previous per-task query on a real machine.
+- Not changed: system detection at startup (`detectar_equipo()`, ~2.4 s, one PowerShell call), cleanups, restore points and the apply/restore logic.
+
+### Tests
+- 86 tests (was 82): `plan()` requests the app list only once and leaves no cache behind, nested cache use, `tareas_estado()` makes a single PowerShell call and handles case differences and missing tasks, and falls back to the per-task query when the output is unreadable or PowerShell returns a single object instead of a list.
+
 ## [1.3.0] - 2026-11-25
 
 ### Added
