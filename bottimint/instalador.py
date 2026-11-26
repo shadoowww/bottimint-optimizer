@@ -133,7 +133,8 @@ def _cod(c: int) -> int:
 
 
 # Instala «Instalador de aplicaciones» (winget) desde los servidores oficiales de Microsoft. Solo URLs fijas (nada del
-# usuario se mezcla con el script). Windows verifica la firma del paquete al instalarlo; después se comprueba el editor.
+# usuario se mezcla con el script). Antes de instalar se exige firma válida de Microsoft en los tres archivos; Windows
+# vuelve a verificar la firma al instalar y después se comprueba el editor del paquete instalado.
 SCRIPT_INSTALAR_WINGET = r"""
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -146,6 +147,13 @@ try {
   Invoke-WebRequest -UseBasicParsing -Uri "https://aka.ms/Microsoft.VCLibs.$arq.14.00.Desktop.appx" -OutFile $vc
   Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.$arq.appx" -OutFile $xaml
   Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle' -OutFile $wg
+  # ANTES de instalar nada: los tres archivos deben tener firma valida y de Microsoft
+  foreach ($f in @($wg, $vc, $xaml)) {
+    $firma = Get-AuthenticodeSignature -LiteralPath $f
+    if ($firma.Status -ne 'Valid' -or $firma.SignerCertificate.Subject -notmatch '(^|, )O=Microsoft Corporation(,|$)') {
+      throw ('No se instala: ' + (Split-Path $f -Leaf) + ' no tiene una firma valida de Microsoft (' + $firma.Status + ')')
+    }
+  }
   Add-AppxPackage -Path $wg -DependencyPath $vc, $xaml
   $p = Get-AppxPackage -Name Microsoft.DesktopAppInstaller
   if (-not $p -or $p.Publisher -notlike 'CN=Microsoft Corporation*') { throw 'El paquete instalado no es de Microsoft' }

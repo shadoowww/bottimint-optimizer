@@ -35,14 +35,22 @@ The injection tests (`PruebasInyeccion`, `PruebasManifiesto`) passed on the firs
 | 14 | **Translated texts** breaking placeholders or opening an injection path in messages | `test_idiomas` checks that every translation keeps its placeholders | `test_idiomas.py` |
 | 15 | **System locations taken from environment variables** (found in the 1.3.2 round, reproduced before patching): with `SystemRoot`/`USERPROFILE` changed, the cleanup accepted `C:\Windows\System32\drivers\etc` and the real Documents folder; `resolver_exe("powershell")` returned a fake `powershell.exe` that was run; the manifests folder followed a fake `ProgramData`. The old test only checked the opposite case | New `confiables.py`: Windows folder, System32, known folders and the data folder come from the Windows API, not from the environment (fallback to variables only outside Windows) | `PruebasEntornoManipuladoReal`, `test_una_variable_de_entorno_manipulada_no_apunta_la_limpieza_a_carpetas_criticas`, `test_la_carpeta_de_datos_no_depende_de_la_variable_ProgramData`, `test_ningun_modulo_decide_rutas_del_sistema_con_variables_de_entorno` |
 | 16 | **Executable search in the current directory** (found in 1.3.2, reproduced with a decoy `winget.exe`): when a command was not found in its expected folder, `resolver_exe` returned the bare name and Windows searched the current folder first (e.g. Downloads) | Always an absolute path (a missing one gives "command not found", code 127); `endurecer_proceso()` removes the current directory from the executable and DLL search at startup | `test_un_ejecutable_inexistente_nunca_se_devuelve_como_nombre_desnudo`, `test_winget_sin_perfil_conocido_no_cae_a_una_ruta_relativa`, `test_el_directorio_actual_no_se_busca_para_ejecutar_comandos`, `test_winget_plantado_en_el_directorio_actual_no_se_ejecuta`, `test_endurecer_proceso_excluye_el_directorio_actual` |
+| 17 | **Data folder: existing content kept its own permissions** (`icacls` without recursion). A manifest created beforehand by a standard user stayed writable by them | As administrator, everything inside is re-owned and reset, top-down, securing each folder before listing it (no `icacls /T`, which could follow junctions); links and hard links are removed without touching the target; failure stops the program | `PruebasCarpetaDeDatos`, `PruebasCarpetaDeDatosReal` |
+| 18 | **Restore wrote the type and value found in the manifest** into the allowed registry keys | Type and value must match the kind of the setting; invalid ones are skipped and reported; deletion needs an explicit `false` | `PruebasValoresDelManifiesto` |
+| 19 | **Restore could re-enable any startup entry** named in the manifest | Only entries matching that change's list | `test_restaurar_inicio_no_reactiva_entradas_ajenas_al_cambio` |
+| 20 | **winget publisher checked only after installing** | Valid Microsoft signature required on the three files before `Add-AppxPackage` (checked with the real packages and with altered copies) | `test_la_firma_de_los_tres_paquetes_se_comprueba_antes_de_instalar` |
+| 21 | **Restore point description not escaped** (not exploitable: its parts were validated earlier) | `ps_str` | `PruebasPuntoDeRestauracion` |
+| 22 | **Release chain**: actions referenced by movable tags (one third-party with write access), unpinned build dependencies, build running with write permissions | Actions pinned by commit; hashed build dependencies; build job without write access, separate publish job; read-only CI; CodeQL, Scorecard, Dependabot | `PruebasCadenaDePublicacion` |
 
 ## 3. Static analysis
 
 `bandit` over `bottimint/`: **only low-severity findings** (use of `subprocess` with argument lists and absolute paths, expected in a system tool). No medium or high findings.
 
+Since 1.3.3/1.3.4 the code was also checked with `semgrep` (Python, security and GitHub Actions community rules: 0 findings) and `pip-audit` on the build dependencies (no known vulnerabilities, 1.3.3). CodeQL and OpenSSF Scorecard run in GitHub.
+
 ## 4. Tests
 
-- 95 tests in total (the real-Windows ones - junction, environment and current-directory - are skipped on Linux and run in CI on `windows-latest`).
+- 121 tests in total (the real-Windows ones are skipped on Linux and run in CI on `windows-latest`; one also needs administrator rights, which the CI runners have).
 - GUI tests run under `xvfb`; the rest run without a display.
 - They cover: links, dangerous paths, executables, injection, manifest, settings, languages, contrast and the exit confirmation.
 

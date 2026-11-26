@@ -4,6 +4,27 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semant
 
 ## [Unreleased]
 
+## [1.3.4] - 2026-11-26
+
+Security release (hardening round 3): the items left open by the 1.3.2 review. Details in `docs/AUDITORIA_SEGURIDAD.md` (items 17-22). These were found by reading the code; no abuse has been reported.
+
+### Security
+- **The data folder is now locked down including what was already inside it.** Before, only the folder itself got the restricted permissions: files or folders created earlier (for example by a standard user before BottiMint ever ran) kept their own. Now, running as administrator, everything inside gets owner Administrators and only the inherited SYSTEM/Administrators permissions. `icacls /T` is deliberately **not** used (it could follow a planted junction): the tree is walked top-down and each folder is secured before it is listed. Links and hard links found inside are removed without touching their target. If the permissions cannot be set, BottiMint now **stops** (before changing anything) instead of ignoring the error.
+- **Restoring validates the values, not only the keys.** The registry type and value read from the session manifest must be of the same kind as the setting (32-bit number, or text up to 2048 characters without null characters); anything else is skipped and reported in the log. A value is only deleted when the manifest says explicitly that it did not exist.
+- **Restoring startup programs only re-enables entries that change can disable.** Before, an altered manifest could re-enable any disabled startup entry (for example one disabled by the user or an antivirus).
+- **winget packages are verified before installing.** The three downloaded files must have a valid signature from Microsoft Corporation before `Add-AppxPackage`; before, the publisher was only checked after installing. Verified with the real files: the three originals pass; a one-byte change, an unsigned file and a validly signed file from another publisher are rejected.
+- The restore point description is quoted with the same PowerShell escaping as every other value (defence in depth; it was not exploitable).
+
+### Release chain
+- All GitHub Actions are **pinned to a commit** (a tag can be moved, a commit cannot); Dependabot proposes updates.
+- The release is split in two jobs: the one that **builds** has no write permission (neither pip nor PyInstaller ever see a token that can publish); the one that **publishes** installs and runs nothing from the project, checks the SHA256 of what it received, attests and publishes.
+- Build dependencies are pinned by exact version **and SHA256** (`requirements-build.txt`, installed with `--require-hashes`); `bandit` is pinned in CI.
+- CI now starts from read-only permissions and builds the `.exe` on every push (without publishing), so a broken build is noticed before tagging.
+- New: **CodeQL** (Python and the workflows) and **OpenSSF Scorecard** (results stay in the repository's Security tab; not published elsewhere).
+
+### Tests
+- 121 tests (was 104; one needs administrator rights and runs on the Windows CI runners): securing existing content in the right order, links and hard links, stopping when permissions fail, a real junction planted inside the data folder, real `icacls` syntax, invalid and legitimate manifest values, startup restore, PowerShell escaping, signature check placed before installing, and guards for the workflows (pinned actions, read-only by default, build without write access, hashed dependencies).
+
 ## [1.3.3] - 2026-11-25
 
 ### Changed

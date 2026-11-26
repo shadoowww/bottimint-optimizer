@@ -50,7 +50,7 @@ try:
 except ImportError:
     winreg = None
 
-REG_SZ, REG_DWORD = 1, 4
+REG_SZ, REG_EXPAND_SZ, REG_DWORD = 1, 2, 4
 ORDEN = ["basico", "profundo", "extremo"]
 SVC_KEY = "SYSTEM\\CurrentControlSet\\Services\\"
 
@@ -348,6 +348,20 @@ def ps_str(valor: str) -> str:
     return "'" + str(valor).replace("'", "''") + "'"
 
 
+_TIPOS_COMPATIBLES = {REG_DWORD: (REG_DWORD,), REG_SZ: (REG_SZ, REG_EXPAND_SZ)}
+MAX_TEXTO_REGISTRO = 2048
+
+
+def _valor_registro_valido(tipo_catalogo: int, tipo, valor) -> bool:
+    """El `tipo` y el `valor` que se van a restaurar vienen del manifiesto: deben ser de la misma familia que el ajuste
+    del catálogo (número de 32 bits o texto corto sin caracteres nulos)."""
+    if isinstance(tipo, bool) or tipo not in _TIPOS_COMPATIBLES.get(tipo_catalogo, ()):
+        return False
+    if tipo == REG_DWORD:
+        return isinstance(valor, int) and not isinstance(valor, bool) and 0 <= valor <= 0xFFFFFFFF
+    return isinstance(valor, str) and len(valor) <= MAX_TEXTO_REGISTRO and "\x00" not in valor
+
+
 def _loc_appx_valida(loc: str) -> bool:
     """Una app de la Tienda solo se registra desde ...\\WindowsApps\\<paquete> (nada de rutas arbitrarias)."""
     if not loc or any(c in loc for c in "\"'`$;&|\n\r<>"):
@@ -427,16 +441,22 @@ class CambioRegistro(Cambio):
         return f"{len(self.valores)} ajustes aplicados"
 
     def revertir(self, env, estado):
-        n, permitidos = 0, {(h, pa.lower(), na.lower()) for h, pa, na, _t, _v in self.valores}
+        n, rechazados = 0, 0
+        permitidos = {(h, pa.lower(), na.lower()): t for h, pa, na, t, _v in self.valores}
         for p in reversed(estado.get("valores", [])):
-            if (p.get("hive"), str(p.get("path", "")).lower(), str(p.get("name", "")).lower()) not in permitidos:
+            clave = (p.get("hive"), str(p.get("path", "")).lower(), str(p.get("name", "")).lower())
+            if clave not in permitidos:
                 continue  # el manifiesto pide tocar algo que este cambio nunca toca: se ignora
-            if p["existe"] and p["valor"] is not None:
+            if p["existe"] is True and p["valor"] is not None:
+                if not _valor_registro_valido(permitidos[clave], p.get("tipo"), p["valor"]):
+                    rechazados += 1  # tipo o valor que este ajuste no puede tener: no se escribe
+                    continue
                 env.reg_set(p["hive"], p["path"], p["name"], p["tipo"], p["valor"])
-            elif not p["existe"]:
+            elif p["existe"] is False:
                 env.reg_del(p["hive"], p["path"], p["name"])
             n += 1
-        return f"{n} ajustes restaurados"
+        aviso = f"; {rechazados} valores no válidos ignorados" if rechazados else ""
+        return f"{n} ajustes restaurados{aviso}"
 
 
 # Ajustes de interfaz que se cambian con SystemParametersInfo (se aplican al instante y quedan guardados).
@@ -682,9 +702,11 @@ class CambioInicio(Cambio):
         super().__init__(id, nivel, grupo, titulo, que_hace, consecuencia, riesgo, defecto)
         self.patrones = [p.lower() for p in patrones]
 
+    def _es_de_la_lista(self, e) -> bool:
+        return any(p in e.nombre.lower() or p in e.comando.lower() for p in self.patrones)
+
     def _coinciden(self, env):
-        return [e for e in env.listar_inicio() if e.habilitado and
-                any(p in e.nombre.lower() or p in e.comando.lower() for p in self.patrones)]
+        return [e for e in env.listar_inicio() if e.habilitado and self._es_de_la_lista(e)]
 
     def aplica(self, env):
         c = self._coinciden(env)
@@ -705,7 +727,9 @@ class CambioInicio(Cambio):
         actuales = env.listar_inicio()
         for h in reversed(estado.get("inicio", [])):
             for e in actuales:
-                if e.nombre == h["nombre"] and e.origen == h["origen"]:
+                # solo se re-habilita lo que este cambio puede deshabilitar: un manifiesto alterado no puede reactivar
+                # otras entradas (por ejemplo, una que el usuario o el antivirus habían desactivado)
+                if e.nombre == h["nombre"] and e.origen == h["origen"] and self._es_de_la_lista(e):
                     env.set_inicio(e, True)
                     n += 1
         return f"{n} programas de inicio habilitados"
@@ -972,9 +996,9 @@ def crear_punto_restauracion(env: Entorno, descripcion: str, emitir: Callable[[s
     ex, val, _t = env.reg_get(*clave)
     env.reg_set(*clave, REG_DWORD, 0)  # permite crear más de uno cada 24 h
     try:
-        env.ps(f"Checkpoint-Computer -Description '{descripcion}' -RestorePointType MODIFY_SETTINGS", 300)
+        env.ps(f"Checkpoint-Computer -Description {ps_str(descripcion)} -RestorePointType MODIFY_SETTINGS", 300)
         env.pausa(2)
-        cod, out = env.ps(f"@(Get-ComputerRestorePoint | Where-Object {{ $_.Description -eq '{descripcion}' }}).Count", 60)
+        cod, out = env.ps(f"@(Get-ComputerRestorePoint | Where-Object {{ $_.Description -eq {ps_str(descripcion)} }}).Count", 60)
         try:
             return int(out.strip().splitlines()[-1]) >= 1
         except (ValueError, IndexError):

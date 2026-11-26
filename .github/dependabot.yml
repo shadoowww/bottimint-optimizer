@@ -1,0 +1,14 @@
+# Propone (como pull requests, nunca los mezcla solo) las actualizaciones de las acciones fijadas por commit
+# y de las dependencias de compilación fijadas por hash.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5

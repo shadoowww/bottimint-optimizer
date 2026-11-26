@@ -44,6 +44,16 @@ class PruebasInstalador(unittest.TestCase):
                 self.assertTrue(ruta.startswith("/microsoft/"), ruta)
         self.assertIn("CN=Microsoft Corporation", instalador.SCRIPT_INSTALAR_WINGET)
 
+    def test_la_firma_de_los_tres_paquetes_se_comprueba_antes_de_instalar(self):
+        s = instalador.SCRIPT_INSTALAR_WINGET
+        comprobacion = s.index("Get-AuthenticodeSignature")
+        self.assertLess(s.rindex("Invoke-WebRequest"), comprobacion)  # después de descargar todo
+        self.assertLess(comprobacion, s.index("Add-AppxPackage"))  # y antes de instalar nada
+        self.assertIn("@($wg, $vc, $xaml)", s)
+        self.assertIn("$firma.Status -ne 'Valid'", s)
+        self.assertIn("O=Microsoft Corporation(,|$)", s)
+        self.assertIn("throw", s[comprobacion:s.index("Add-AppxPackage")])
+
     def test_perfiles_combinados_sin_duplicados(self):
         ids = instalador.ids_de(["gamer", "oficina"])
         self.assertEqual(len(ids), len(set(ids)))

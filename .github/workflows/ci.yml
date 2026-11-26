@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# Solo lectura: la CI no necesita escribir nada en el repositorio.
+permissions:
+  contents: read
+
 jobs:
   tests:
     name: Tests (${{ matrix.os }}, Python ${{ matrix.python }})
@@ -15,8 +19,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python: ["3.10", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ matrix.python }}
       - name: Tests (sin pantalla)
@@ -33,14 +39,32 @@ jobs:
           python scripts/generar_docs.py
           git diff --exit-code docs/NIVELES.md docs/PROGRAMAS.md
 
+  compilacion:
+    name: Compilar el .exe (sin publicar)
+    runs-on: windows-latest
+    steps:
+      # los mismos pasos que la release, para enterarse de un fallo ANTES de crear la etiqueta
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Compilar con las dependencias fijadas por hash
+        run: |
+          pip install --require-hashes --only-binary=:all: --no-deps -r requirements-build.txt
+          pyinstaller --onefile --noconsole --uac-admin --name BottiMint run.py
+
   seguridad:
     name: Análisis de seguridad (bandit)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
-      - run: pip install bandit
+      - run: pip install bandit==1.9.4
       - name: Bandit (falla ante hallazgos de severidad media o alta)
         run: bandit -r bottimint -ll

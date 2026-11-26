@@ -272,19 +272,58 @@ def resolver_exe(nombre: str) -> str:
     return cand
 
 
+SID_ADMINISTRADORES, SID_SYSTEM = "*S-1-5-32-544", "*S-1-5-18"
+
+
 def preparar_dir_datos(ruta: str) -> str:
     """Crea la carpeta de datos (sesiones/informes) de forma segura:
     - si existe y es un enlace/junction, se rechaza (alguien pudo plantarla para redirigir escrituras);
-    - si somos administrador en Windows, se restringe a SYSTEM y Administradores con icacls
-      (así un usuario común no puede alterar manifiestos que luego se leen con privilegios)."""
+    - si somos administrador en Windows, se restringe a SYSTEM y Administradores con icacls, ella Y TODO SU CONTENIDO
+      (así un usuario común no puede alterar manifiestos que luego se leen con privilegios, ni siquiera los de una
+      carpeta que hubiera creado antes que BottiMint). Si no se puede asegurar, se lanza OSError y no se continúa."""
     if os.path.lexists(ruta) and es_enlace(ruta):
         raise OSError(f"La carpeta de datos es un enlace/junction y no es segura: {ruta}")
     os.makedirs(ruta, exist_ok=True)
     if IS_WIN and is_admin():
-        ejecutar([os.path.join(_dir_sistema(), "icacls.exe"), ruta, "/setowner", "*S-1-5-32-544"], 30)
-        ejecutar([os.path.join(_dir_sistema(), "icacls.exe"), ruta, "/inheritance:r", "/grant:r",
-                  "*S-1-5-18:(OI)(CI)F", "*S-1-5-32-544:(OI)(CI)F"], 30)
+        _icacls(ruta, "/setowner", SID_ADMINISTRADORES)
+        _icacls(ruta, "/inheritance:r", "/grant:r", f"{SID_SYSTEM}:(OI)(CI)F", f"{SID_ADMINISTRADORES}:(OI)(CI)F")
+        _asegurar_contenido(ruta)
     return ruta
+
+
+def _icacls(ruta: str, *args: str) -> None:
+    # /L: actúa sobre el propio enlace, nunca sobre su destino (defensa extra: los enlaces ya se quitan antes)
+    cod, salida = ejecutar([os.path.join(_dir_sistema(), "icacls.exe"), ruta, *args, "/L"], 30)
+    if cod != 0:
+        raise OSError(f"No se pudieron asegurar los permisos de {ruta}: {salida[-200:]}")
+
+
+def _asegurar_contenido(raiz: str) -> None:
+    """Deja todo lo que ya había dentro con dueño Administradores y solo los permisos heredados de la raíz.
+
+    NO se usa `icacls /T`: podría seguir una junction plantada y cambiar permisos en carpetas ajenas. Se recorre de
+    arriba hacia abajo y cada carpeta se asegura ANTES de listarla: una vez que es de Administradores, un usuario común
+    ya no puede crear nada dentro, así que lo que se lista no puede cambiar mientras se procesa. Los enlaces y los
+    archivos con varios nombres (enlaces duros) no los crea BottiMint: se quitan sin tocar su destino."""
+    pila = [raiz]
+    while pila:
+        with os.scandir(pila.pop()) as it:
+            entradas = list(it)
+        for e in entradas:
+            enlace = es_enlace(e.path)
+            carpeta = not enlace and e.is_dir(follow_symlinks=False)
+            if enlace:
+                _quitar_enlace(e.path)
+            elif not carpeta and os.lstat(e.path).st_nlink > 1:
+                os.remove(e.path)  # quita solo este nombre: cambiarle los permisos afectaría al archivo original
+            else:
+                _icacls(e.path, "/setowner", SID_ADMINISTRADORES)
+                _icacls(e.path, "/reset")
+                if carpeta:
+                    pila.append(e.path)
+                continue
+            if os.path.lexists(e.path):
+                raise OSError(f"No se pudo quitar un enlace sospechoso de la carpeta de datos: {e.path}")
 
 
 def ejecutar(cmd: List[str], timeout: Optional[int] = None):

@@ -1,42 +1,73 @@
 name: Release
 
 # Se ejecuta al subir una etiqueta de versión:  git tag v1.1.0 && git push origin v1.1.0
+#
+# Seguridad de la cadena de publicación:
+#  - Las acciones van fijadas por commit (un tag se puede mover; un commit no). Dependabot propone las actualizaciones.
+#  - Se compila en un trabajo SIN permisos de escritura: ni pip ni PyInstaller ven un token que pueda publicar.
+#  - Las dependencias de compilación van con versión y SHA256 exactos (requirements-build.txt).
+#  - Solo el trabajo "publicar", que no instala ni ejecuta nada del proyecto, puede escribir la release y atestar.
 on:
   push:
     tags: ["v*"]
 
 permissions:
-  contents: write      # publicar la release
-  id-token: write      # firmar la atestación de procedencia
-  attestations: write
+  contents: read
 
 jobs:
-  exe:
+  compilar:
+    name: Compilar el .exe
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
       - name: Tests
         run: python -m unittest discover -s tests -t .
       - name: Compilar .exe
         run: |
-          pip install -r requirements-dev.txt
+          pip install --require-hashes --only-binary=:all: --no-deps -r requirements-build.txt
           pyinstaller --onefile --noconsole --uac-admin --name BottiMint run.py
       - name: Calcular SHA256
         shell: pwsh
         run: |
           $h = (Get-FileHash dist/BottiMint.exe -Algorithm SHA256).Hash.ToLower()
           "$h  BottiMint.exe" | Out-File -Encoding ascii dist/BottiMint.exe.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: BottiMint
+          path: |
+            dist/BottiMint.exe
+            dist/BottiMint.exe.sha256
+          if-no-files-found: error
+
+  publicar:
+    name: Atestar y publicar
+    needs: compilar
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # publicar la release
+      id-token: write      # firmar la atestación de procedencia
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: BottiMint
+          path: dist
+      - name: Comprobar que el .exe recibido coincide con su SHA256
+        run: cd dist && tr -d '\r' < BottiMint.exe.sha256 | sha256sum --check --strict -
       - name: Atestación de procedencia (prueba criptográfica de que este .exe salió de este repositorio)
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-path: dist/BottiMint.exe
       - name: Publicar release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           files: |
             dist/BottiMint.exe
             dist/BottiMint.exe.sha256
           generate_release_notes: true
+          fail_on_unmatched_files: true
