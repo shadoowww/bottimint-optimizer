@@ -69,6 +69,19 @@ class PruebasCarpetaDeDatos(unittest.TestCase):
             self.assertEqual(f.read(), "no tocar")
         self.assertFalse(any(c[1] in (duro, original) for c in llamadas))
 
+    def test_abrir_la_carpeta_no_recorre_el_contenido(self):
+        """El botón de la interfaz no debe tardar más por cada sesión guardada; aplicar sí asegura todo."""
+        datos = tempfile.mkdtemp()
+        for i in range(20):
+            _escribir(os.path.join(datos, "sesiones", f"20260101_{i:06d}", "manifest.json"))
+        llamadas = []
+        with mock.patch.object(limpieza, "IS_WIN", True), mock.patch.object(limpieza, "is_admin", return_value=True), \
+                mock.patch.object(limpieza, "ejecutar", side_effect=lambda c, t=None: llamadas.append(c) or (0, "")):
+            limpieza.preparar_dir_datos(datos, con_contenido=False)
+        self.assertEqual({c[1] for c in llamadas}, {datos})
+        self.assertEqual(len(llamadas), 2)
+        self.assertGreater(len(self.preparar(datos)), 40)  # por defecto (aplicar) se asegura todo
+
     def test_si_no_se_pueden_asegurar_los_permisos_no_se_continua(self):
         with self.assertRaises(OSError):
             self.preparar(tempfile.mkdtemp(), codigo=5)

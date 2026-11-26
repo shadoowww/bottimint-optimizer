@@ -439,7 +439,7 @@ class App(tk.Tk):
 
     def _abrir_informes(self) -> None:
         try:
-            base.preparar_dir_datos(self.env.base_dir)
+            base.preparar_dir_datos(self.env.base_dir, con_contenido=False)  # solo abrir: sin demora en la interfaz
             os.startfile(self.env.base_dir)  # type: ignore[attr-defined]
         except Exception as ex:
             self.aviso(tr("Informes"), tr("Los informes están en:\n{ruta}\n\n({ex})", ruta=self.env.base_dir, ex=ex))

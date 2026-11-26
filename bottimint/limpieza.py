@@ -275,19 +275,22 @@ def resolver_exe(nombre: str) -> str:
 SID_ADMINISTRADORES, SID_SYSTEM = "*S-1-5-32-544", "*S-1-5-18"
 
 
-def preparar_dir_datos(ruta: str) -> str:
+def preparar_dir_datos(ruta: str, con_contenido: bool = True) -> str:
     """Crea la carpeta de datos (sesiones/informes) de forma segura:
     - si existe y es un enlace/junction, se rechaza (alguien pudo plantarla para redirigir escrituras);
     - si somos administrador en Windows, se restringe a SYSTEM y Administradores con icacls, ella Y TODO SU CONTENIDO
       (así un usuario común no puede alterar manifiestos que luego se leen con privilegios, ni siquiera los de una
-      carpeta que hubiera creado antes que BottiMint). Si no se puede asegurar, se lanza OSError y no se continúa."""
+      carpeta que hubiera creado antes que BottiMint). Si no se puede asegurar, se lanza OSError y no se continúa.
+    `con_contenido=False` solo asegura la carpeta (para abrirla desde la interfaz): recorrer el contenido tarda más
+    cuantas más sesiones hay y solo hace falta antes de escribir sesiones (aplicar)."""
     if os.path.lexists(ruta) and es_enlace(ruta):
         raise OSError(f"La carpeta de datos es un enlace/junction y no es segura: {ruta}")
     os.makedirs(ruta, exist_ok=True)
     if IS_WIN and is_admin():
         _icacls(ruta, "/setowner", SID_ADMINISTRADORES)
         _icacls(ruta, "/inheritance:r", "/grant:r", f"{SID_SYSTEM}:(OI)(CI)F", f"{SID_ADMINISTRADORES}:(OI)(CI)F")
-        _asegurar_contenido(ruta)
+        if con_contenido:
+            _asegurar_contenido(ruta)
     return ruta
 
 
