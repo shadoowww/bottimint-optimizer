@@ -41,6 +41,7 @@ The injection tests (`PruebasInyeccion`, `PruebasManifiesto`) passed on the firs
 | 20 | **winget publisher checked only after installing** | Valid Microsoft signature required on the three files before `Add-AppxPackage` (checked with the real packages and with altered copies) | `test_la_firma_de_los_tres_paquetes_se_comprueba_antes_de_instalar` |
 | 21 | **Restore point description not escaped** (not exploitable: its parts were validated earlier) | `ps_str` | `PruebasPuntoDeRestauracion` |
 | 22 | **Release chain**: actions referenced by movable tags (one third-party with write access), unpinned build dependencies, build running with write permissions | Actions pinned by commit; hashed build dependencies; build job without write access, separate publish job; read-only CI; CodeQL, Scorecard, Dependabot | `PruebasCadenaDePublicacion` |
+| 23 | **Crashes with altered files** (found by fuzzing in 1.3.5): a manifest without `titulo` stopped the restore halfway; a bad `nivel` or very deep JSON broke the session list; invalid Unicode broke saving; very deep JSON in `ajustes.json` prevented startup. No write outside the allowed list was found | Title from the catalog; type and depth checks; safe saving; `RecursionError` handled | `tests/test_fuzz.py` |
 
 ## 3. Static analysis
 
@@ -50,7 +51,7 @@ Since 1.3.3/1.3.4 the code was also checked with `semgrep` (Python, security and
 
 ## 4. Tests
 
-- 122 tests in total (the real-Windows ones are skipped on Linux and run in CI on `windows-latest`; one also needs administrator rights, which the CI runners have).
+- 132 tests in total (the real-Windows ones are skipped on Linux and run in CI on `windows-latest`; one also needs administrator rights, which the CI runners have).
 - GUI tests run under `xvfb`; the rest run without a display.
 - They cover: links, dangerous paths, executables, injection, manifest, settings, languages, contrast and the exit confirmation.
 

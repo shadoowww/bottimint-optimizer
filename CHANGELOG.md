@@ -4,9 +4,29 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semant
 
 ## [Unreleased]
 
-Only the build and publish pipeline changes; **the application is the same as 1.3.4**, so there is no new version or tag.
+## [1.3.5] - 2026-11-27
 
-### Changed
+Robustness fixes found by **fuzzing** the files BottiMint reads from disk, plus the pipeline changes made since 1.3.4.
+
+### Fixed
+Found by the new fuzz tests, run first against the 1.3.4 code. **None of them allowed writing anything outside the allowed list**; they are crashes. Altering a session manifest requires write access to the protected data folder (administrator); `ajustes.json` belongs to the user.
+- **A manifest entry without `titulo` stopped the restore halfway**, leaving the remaining changes unrestored. The title now comes from the catalog, never from the manifest.
+- **One bad manifest broke the whole session list**, so no session could be restored: `nivel` with an unexpected type, or absurdly nested JSON. Such a manifest is now ignored (a legitimate one is at most 6 levels deep; the limit is 32).
+- **An invalid Unicode character made saving the manifest crash** (the session was never marked as restored). This could also happen legitimately while applying, with an unusual Windows name: it is now saved escaped, without losing it. Normal text is saved as readable as before.
+- **A corrupt, absurdly nested `ajustes.json` prevented the program from starting.** The default settings are used.
+
+### Added
+- **Fuzz tests** (`tests/test_fuzz.py`, standard library only, reproducible by seed): thousands of deformed and byte-corrupted manifests and settings files. A watched fake Windows checks every write that restore attempts against a closed list built from the catalog, with checks written independently from the program's own. Checked by deliberately breaking five defences (registry values, startup entries, services, tasks, power plan): all five were detected. `BOTTIMINT_FUZZ=<n>` runs more cases.
+- `SECURITY.md`: how to report a vulnerability.
+
+### Tests
+- 132 tests (was 124 after the pipeline changes, 122 in 1.3.4).
+- Running the tests no longer leaves `Informe_optimizacion_*.txt` files on the real Desktop (tests that call `aplicar()` on the fake Windows now use a temporary folder).
+
+### Pipeline
+- `bandit` and everything it installs are pinned by version and SHA256 (`requirements-ci.txt`); a test fails if any workflow installs Python packages without hashes.
+
+### Pipeline: actions and release dry run
 - GitHub Actions updated (the five first Dependabot proposals, applied together; each commit hash was checked against the official release tag):
 
   | Action | From | To | Used by |
@@ -19,7 +39,6 @@ Only the build and publish pipeline changes; **the application is the same as 1.
 
   The inputs used by the workflows still exist in the new versions; the new ones run on Node 24. `download-artifact` 8 now **fails** (before: only warned) if a downloaded artifact does not match its digest.
 
-### Added
 - **Release dry run** (Actions > Release > "Run workflow"): builds the `.exe`, uploads it, downloads it again and checks its SHA256 in a job without write permission. It never attests or publishes; publishing only happens when a tag is pushed.
 - Tests: a manual run can never publish, and the dry run performs exactly the same first steps as the publish job.
 - `softprops/action-gh-release` is only exercised by a real release (the next tag).

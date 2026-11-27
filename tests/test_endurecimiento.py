@@ -240,13 +240,23 @@ class PruebasCadenaDePublicacion(unittest.TestCase):
         self.assertTrue(any("download-artifact@" in x for x in ensayo))
         self.assertTrue(any("sha256sum --check" in x for x in ensayo))
 
-    def test_cada_dependencia_de_compilacion_tiene_version_exacta_y_hash(self):
-        with open(os.path.join(RAIZ_REPO, "requirements-build.txt"), encoding="utf-8") as f:
-            unidas = f.read().replace("\\\n", " ")
-        reqs = [x for x in unidas.splitlines() if x.strip() and not x.startswith("#")]
-        self.assertTrue(any(x.startswith("pyinstaller==") for x in reqs))
-        for r in reqs:
-            self.assertRegex(r, r"^[A-Za-z0-9._-]+==[A-Za-z0-9.]+\s+--hash=sha256:[0-9a-f]{64}$")
+    def test_cada_dependencia_fijada_tiene_version_exacta_y_hash(self):
+        for archivo, principal in (("requirements-build.txt", "pyinstaller=="), ("requirements-ci.txt", "bandit==")):
+            with open(os.path.join(RAIZ_REPO, archivo), encoding="utf-8") as f:
+                unidas = f.read().replace("\\\n", " ")
+            reqs = [x for x in unidas.splitlines() if x.strip() and not x.startswith("#")]
+            self.assertTrue(any(x.startswith(principal) for x in reqs), archivo)
+            for r in reqs:
+                self.assertRegex(r, r"^[A-Za-z0-9._-]+==[A-Za-z0-9.]+\s+--hash=sha256:[0-9a-f]{64}$", archivo)
+
+    def test_ningun_workflow_instala_paquetes_de_python_sin_hashes(self):
+        total = 0
+        for nombre, texto in self.workflows():
+            for linea in texto.splitlines():
+                if re.search(r"\bpip3?\s+install\b", linea):
+                    total += 1
+                    self.assertIn("--require-hashes", linea, f"{nombre}: {linea.strip()}")
+        self.assertGreaterEqual(total, 3)
 
 
 if __name__ == "__main__":

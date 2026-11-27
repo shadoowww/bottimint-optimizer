@@ -55,7 +55,7 @@ def cargar(ruta: Optional[str] = None) -> dict:
                 cfg["idioma"] = datos["idioma"]
             if datos.get("tema") in TEMAS_VALIDOS:
                 cfg["tema"] = datos["tema"]
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):  # archivo ilegible, corrupto o absurdamente anidado
         pass
     return cfg
 

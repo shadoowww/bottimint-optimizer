@@ -1057,9 +1057,14 @@ def plan(nivel: str, env: Entorno, equipo: Optional[dict] = None, cache: Optiona
 
 def _guardar(ruta: str, manifest: dict) -> None:
     """Escritura atómica: si se corta la luz a mitad, el manifiesto anterior queda intacto."""
+    texto = json.dumps(manifest, ensure_ascii=False, indent=1, default=str)
+    try:
+        texto.encode("utf-8")
+    except UnicodeEncodeError:  # un nombre de Windows con un carácter Unicode suelto: se guarda escapado, sin perderlo
+        texto = json.dumps(manifest, ensure_ascii=True, indent=1, default=str)
     tmp = ruta + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=1, default=str)
+        f.write(texto)
         f.flush()
         os.fsync(f.fileno())
     os.replace(tmp, ruta)
@@ -1068,14 +1073,31 @@ def _guardar(ruta: str, manifest: dict) -> None:
 _RE_SESION = re.compile(r"^\d{8}_\d{6}$")
 
 
+MAX_PROFUNDIDAD_MANIFIESTO = 32  # uno legítimo no pasa de 6 niveles
+
+
+def _demasiado_anidado(objeto, maximo: int = MAX_PROFUNDIDAD_MANIFIESTO) -> bool:
+    """Sin recursión: un JSON muy anidado haría fallar al volver a guardarlo."""
+    pila = [(objeto, 1)]
+    while pila:
+        o, nivel = pila.pop()
+        if isinstance(o, (dict, list)):
+            if nivel > maximo:
+                return True
+            pila.extend((h, nivel + 1) for h in (o.values() if isinstance(o, dict) else o))
+    return False
+
+
 def _leer_manifest(ruta: str) -> Optional[dict]:
     """Lee un manifiesto y descarta lo que no tenga forma válida (puede haber sido manipulado)."""
     try:
         with open(ruta, encoding="utf-8") as f:
             m = json.load(f)
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):
         return None
-    if not isinstance(m, dict) or not isinstance(m.get("cambios"), list) or m.get("nivel") not in NIVELES:
+    if not isinstance(m, dict) or not isinstance(m.get("cambios"), list) or _demasiado_anidado(m):
+        return None
+    if not isinstance(m.get("nivel"), str) or m["nivel"] not in NIVELES:
         return None
     if not all(isinstance(c, dict) and isinstance(c.get("id"), str) for c in m["cambios"]):
         return None
@@ -1196,10 +1218,11 @@ def restaurar(env: Entorno, sesion: Optional[str] = None, emitir: Callable[[str]
             continue
         if not c.reversible and not isinstance(c, CambioApps):
             continue
+        # el título sale del catálogo, no del manifiesto: puede faltar o decir cualquier cosa
         try:
-            emitir(f"← {entrada['titulo']}: {c.revertir(env, entrada['estado'])}")
+            emitir(f"← {c.titulo}: {c.revertir(env, entrada['estado'])}")
         except Exception as ex:
-            emitir(f"← {entrada['titulo']}: ERROR al restaurar ({ex})")
+            emitir(f"← {c.titulo}: ERROR al restaurar ({ex})")
     manifest["restaurada"] = True
     _guardar(ruta, manifest)
     emitir("Restauración terminada. Conviene reiniciar la PC.")
