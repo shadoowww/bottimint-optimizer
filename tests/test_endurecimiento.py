@@ -214,6 +214,32 @@ class PruebasCadenaDePublicacion(unittest.TestCase):
         self.assertNotIn("pip install", publicar)  # el trabajo con permisos no instala ni ejecuta nada del proyecto
         self.assertNotIn("actions/checkout", publicar)
 
+    def trabajos_de_la_release(self):
+        texto = dict(self.workflows())["release.yml"].split("\njobs:\n")[1]
+        partes = re.split(r"^  (\w+):\n", texto, flags=re.M)
+        return dict(zip(partes[1::2], partes[2::2]))
+
+    def test_una_ejecucion_manual_nunca_publica(self):
+        t = self.trabajos_de_la_release()
+        self.assertEqual(set(t), {"compilar", "ensayo", "publicar"})
+        self.assertIn("if: github.event_name == 'push'", t["publicar"])
+        self.assertIn("if: github.event_name == 'workflow_dispatch'", t["ensayo"])
+        for prohibido in ("permissions:", "write", "attest", "action-gh-release", "pip install", "actions/checkout"):
+            self.assertNotIn(prohibido, t["ensayo"], prohibido)
+
+    def test_el_ensayo_prueba_los_mismos_pasos_que_publicar(self):
+        """Si una actualización cambia la descarga o la comprobación de 'publicar', el ensayo debe cambiar igual."""
+        t = self.trabajos_de_la_release()
+
+        def pasos(trabajo):
+            bloque = t[trabajo].split("steps:\n")[1]
+            lineas = [x.strip() for x in bloque.splitlines() if x.strip() and not x.strip().startswith("#")]
+            return lineas
+        ensayo, publicar = pasos("ensayo"), pasos("publicar")
+        self.assertEqual(ensayo, publicar[:len(ensayo)])
+        self.assertTrue(any("download-artifact@" in x for x in ensayo))
+        self.assertTrue(any("sha256sum --check" in x for x in ensayo))
+
     def test_cada_dependencia_de_compilacion_tiene_version_exacta_y_hash(self):
         with open(os.path.join(RAIZ_REPO, "requirements-build.txt"), encoding="utf-8") as f:
             unidas = f.read().replace("\\\n", " ")

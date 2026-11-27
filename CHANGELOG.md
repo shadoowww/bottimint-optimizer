@@ -4,6 +4,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Semant
 
 ## [Unreleased]
 
+Only the build and publish pipeline changes; **the application is the same as 1.3.4**, so there is no new version or tag.
+
+### Changed
+- GitHub Actions updated (the five first Dependabot proposals, applied together; each commit hash was checked against the official release tag):
+
+  | Action | From | To | Used by |
+  |---|---|---|---|
+  | `actions/setup-python` | 5.6.0 | 7.1.0 | CI and release |
+  | `actions/upload-artifact` | 4.6.2 | 7.0.2 | release |
+  | `actions/download-artifact` | 4.3.0 | 8.0.2 | release |
+  | `softprops/action-gh-release` | 2.6.2 | 3.0.4 | release (v2 is no longer maintained) |
+  | `ossf/scorecard-action` | 2.4.4 | 2.6.0 | Scorecard |
+
+  The inputs used by the workflows still exist in the new versions; the new ones run on Node 24. `download-artifact` 8 now **fails** (before: only warned) if a downloaded artifact does not match its digest.
+
+### Added
+- **Release dry run** (Actions > Release > "Run workflow"): builds the `.exe`, uploads it, downloads it again and checks its SHA256 in a job without write permission. It never attests or publishes; publishing only happens when a tag is pushed.
+- Tests: a manual run can never publish, and the dry run performs exactly the same first steps as the publish job.
+- `softprops/action-gh-release` is only exercised by a real release (the next tag).
+
 ## [1.3.4] - 2026-11-26
 
 Security release (hardening round 3): the items left open by the 1.3.2 review. Details in `docs/AUDITORIA_SEGURIDAD.md` (items 17-22). These were found by reading the code; no abuse has been reported.
