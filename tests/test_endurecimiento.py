@@ -200,6 +200,27 @@ class PruebasCadenaDePublicacion(unittest.TestCase):
                     self.assertRegex(m.group(1), r"^[\w./-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+$", f"{nombre}: {linea.strip()}")
         self.assertGreater(total, 8)
 
+    def test_ningun_valor_en_linea_rompe_el_yaml_con_dos_puntos(self):
+        """`run: pip install --only-binary=:all: --no-deps` en UNA línea es YAML inválido (": " dentro de un valor sin
+        comillas) y GitHub ni siquiera arranca el workflow. Esos comandos van en un bloque `run: |`."""
+        for nombre, texto in self.workflows():
+            bloque = None  # sangría de la clave que abrió un bloque "|" o ">"
+            for n, linea in enumerate(texto.splitlines(), 1):
+                sangria = len(linea) - len(linea.lstrip(" "))
+                if bloque is not None:
+                    if not linea.strip() or sangria > bloque:
+                        continue
+                    bloque = None
+                m = re.match(r"^ *(?:- )?[\w-]+:[ ]+(\S.*)$", linea)
+                if not m or linea.lstrip().startswith("#"):
+                    continue
+                valor = m.group(1)
+                if valor[0] in "|>":
+                    bloque = sangria + (2 if linea.lstrip().startswith("- ") else 0)
+                elif valor[0] not in "'\"[{":
+                    sin_comentario = re.split(r"\s#", valor)[0]
+                    self.assertNotRegex(sin_comentario, r":(\s|$)", f"{nombre}:{n}: {linea.strip()}")
+
     def test_todos_los_workflows_parten_de_solo_lectura(self):
         for nombre, texto in self.workflows():
             m = re.search(r"^permissions:\n((?:[ ]{2}.*\n)+)", texto, re.M)

@@ -29,6 +29,7 @@ A longer run (20,000 deformed manifests, `BOTTIMINT_FUZZ=20000`) found two more 
 
 ### Pipeline
 - `bandit` and everything it installs are pinned by version and SHA256 (`requirements-ci.txt`); a test fails if any workflow installs Python packages without hashes.
+- Fixed before tagging: the first push of this version had a YAML syntax error in `ci.yml` (that command written on the same line as `run:`), so CI did not start. A new test catches that mistake; it was checked to fail on the broken file.
 
 ### Pipeline: actions and release dry run
 - GitHub Actions updated (the five first Dependabot proposals, applied together; each commit hash was checked against the official release tag):

@@ -65,6 +65,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - run: pip install --require-hashes --only-binary=:all: --no-deps -r requirements-ci.txt
+      - name: Instalar Bandit (versiones y SHA256 fijos)
+        run: |
+          pip install --require-hashes --only-binary=:all: --no-deps -r requirements-ci.txt
       - name: Bandit (falla ante hallazgos de severidad media o alta)
         run: bandit -r bottimint -ll
