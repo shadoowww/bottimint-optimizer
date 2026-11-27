@@ -15,12 +15,16 @@ Found by the new fuzz tests, run first against the 1.3.4 code. **None of them al
 - **An invalid Unicode character made saving the manifest crash** (the session was never marked as restored). This could also happen legitimately while applying, with an unusual Windows name: it is now saved escaped, without losing it. Normal text is saved as readable as before.
 - **A corrupt, absurdly nested `ajustes.json` prevented the program from starting.** The default settings are used.
 
+A longer run (20,000 deformed manifests, `BOTTIMINT_FUZZ=20000`) found two more weaknesses that the normal run of 1,200 had missed. They did not reach other registry keys, services or commands, but values that should have been rejected got through:
+- **Types were compared by value only.** `True` and `4.0` are "equal" to 1 and 4 in Python, so they passed as a service start type, a registry type or a visual-effect value (this made the 1.3.4 type check weaker than described). Only real integers are accepted now.
+- **Validation patterns accepted a trailing newline** (`$` instead of `\Z`), for example in the power plan GUID passed to `powercfg`. Fixed in all seven validation patterns, including winget package IDs.
+
 ### Added
 - **Fuzz tests** (`tests/test_fuzz.py`, standard library only, reproducible by seed): thousands of deformed and byte-corrupted manifests and settings files. A watched fake Windows checks every write that restore attempts against a closed list built from the catalog, with checks written independently from the program's own. Checked by deliberately breaking five defences (registry values, startup entries, services, tasks, power plan): all five were detected. `BOTTIMINT_FUZZ=<n>` runs more cases.
 - `SECURITY.md`: how to report a vulnerability.
 
 ### Tests
-- 132 tests (was 124 after the pipeline changes, 122 in 1.3.4).
+- 136 tests (was 124 after the pipeline changes, 122 in 1.3.4). The cases found by the long run are fixed tests, so they do not depend on chance.
 - Running the tests no longer leaves `Informe_optimizacion_*.txt` files on the real Desktop (tests that call `aplicar()` on the fake Windows now use a temporary folder).
 
 ### Pipeline

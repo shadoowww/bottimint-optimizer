@@ -338,9 +338,9 @@ class Entorno:
 # ====================================================================
 # Seguridad: validación de lo que viene de un manifiesto (puede estar manipulado)
 # ====================================================================
-_RE_NOMBRE = re.compile(r"^[A-Za-z0-9 ._\-]{1,128}$")          # servicios, tareas
-_RE_APPX = re.compile(r"^[A-Za-z0-9._\-]{1,200}$")              # PackageFullName
-_RE_GUID = re.compile(r"^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$")
+_RE_NOMBRE = re.compile(r"^[A-Za-z0-9 ._\-]{1,128}\Z")          # servicios, tareas
+_RE_APPX = re.compile(r"^[A-Za-z0-9._\-]{1,200}\Z")              # PackageFullName
+_RE_GUID = re.compile(r"^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\Z")
 
 
 def ps_str(valor: str) -> str:
@@ -355,7 +355,7 @@ MAX_TEXTO_REGISTRO = 2048
 def _valor_registro_valido(tipo_catalogo: int, tipo, valor) -> bool:
     """El `tipo` y el `valor` que se van a restaurar vienen del manifiesto: deben ser de la misma familia que el ajuste
     del catálogo (número de 32 bits o texto corto sin caracteres nulos)."""
-    if isinstance(tipo, bool) or tipo not in _TIPOS_COMPATIBLES.get(tipo_catalogo, ()):
+    if type(tipo) is not int or tipo not in _TIPOS_COMPATIBLES.get(tipo_catalogo, ()):  # 4.0 y True no valen
         return False
     if tipo == REG_DWORD:
         return isinstance(valor, int) and not isinstance(valor, bool) and 0 <= valor <= 0xFFFFFFFF
@@ -477,8 +477,8 @@ SPI_AJUSTES = [
     ("cleartype", 0x200A, 0x200B, "pv", 2),
 ]
 _SPI_POR_CLAVE = {a[0]: a for a in SPI_AJUSTES}
-_RE_RUTA_FONDO = re.compile(r"^(?:[A-Za-z]:\\[^<>\"|?*\x00-\x1f]{0,240})?$")  # "" (sin imagen) o ruta local de unidad
-_RE_COLOR = re.compile(r"^(\d{1,3}) (\d{1,3}) (\d{1,3})$")
+_RE_RUTA_FONDO = re.compile(r"^(?:[A-Za-z]:\\[^<>\"|?*\x00-\x1f]{0,240})?\Z")  # "" (sin imagen) o ruta local de unidad
+_RE_COLOR = re.compile(r"^(\d{1,3}) (\d{1,3}) (\d{1,3})\Z")
 
 
 class CambioAnimaciones(Cambio):
@@ -504,7 +504,7 @@ class CambioAnimaciones(Cambio):
         n = 0
         for p in reversed(estado.get("spi", [])):
             a = _SPI_POR_CLAVE.get(p.get("clave"))
-            if not a or p.get("valor") not in (0, 1, 2):
+            if not a or type(p.get("valor")) is not int or p["valor"] not in (0, 1, 2):
                 continue  # el manifiesto pide algo que este cambio nunca toca: se ignora
             if env.spi_set(a[2], int(p["valor"]), a[3]):
                 n += 1
@@ -562,7 +562,9 @@ class CambioServicios(Cambio):
     def revertir(self, env, estado):
         n = 0
         for r in reversed(estado.get("servicios", [])):
-            if r.get("nombre") not in self.servicios or not _RE_NOMBRE.match(r["nombre"]) or r.get("start") not in (0, 1, 2, 3, 4):
+            if r.get("nombre") not in self.servicios or not _RE_NOMBRE.match(r["nombre"]):
+                continue
+            if type(r.get("start")) is not int or r["start"] not in (0, 1, 2, 3, 4):  # True y 4.0 son "iguales" a 1 y 4
                 continue
             env.reg_set("HKLM", SVC_KEY + r["nombre"], "Start", REG_DWORD, r["start"])
             if r["corriendo"] and r["start"] != 4:
@@ -1070,7 +1072,7 @@ def _guardar(ruta: str, manifest: dict) -> None:
     os.replace(tmp, ruta)
 
 
-_RE_SESION = re.compile(r"^\d{8}_\d{6}$")
+_RE_SESION = re.compile(r"^\d{8}_\d{6}\Z")
 
 
 MAX_PROFUNDIDAD_MANIFIESTO = 32  # uno legítimo no pasa de 6 niveles

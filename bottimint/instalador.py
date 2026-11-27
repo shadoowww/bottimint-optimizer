@@ -121,7 +121,7 @@ NO_EXISTE = {0x8A150014, 0x8A150010}                  # paquete no encontrado
 
 
 # Un ID de winget válido nunca empieza con "-" ni tiene espacios/metacaracteres: así no se puede colar una opción.
-RE_ID_WINGET = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+\-]{0,127}$")
+RE_ID_WINGET = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+\-]{0,127}\Z")
 
 
 def id_valido(id_: str) -> bool:

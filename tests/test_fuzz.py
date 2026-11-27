@@ -16,7 +16,7 @@ import random
 import tempfile
 import unittest
 
-from bottimint import ajustes, nucleo
+from bottimint import ajustes, instalador, nucleo
 from tests.falsos import EntornoFalso
 
 CASOS = int(os.environ.get("BOTTIMINT_FUZZ", "1200"))
@@ -220,6 +220,8 @@ class PruebasFuzzManifiesto(unittest.TestCase):
             azar = random.Random(semilla)
             datos = bytearray(original)
             for _ in range(azar.randint(1, 8)):
+                if not datos:  # los recortes pueden dejarlo vacío: ese también es un caso válido
+                    break
                 i = azar.randrange(len(datos))
                 que = azar.randrange(4)
                 if que == 0:
@@ -257,6 +259,51 @@ class PruebasFuzzManifiesto(unittest.TestCase):
                 f.write(texto)
             self.ejercitar(env, errores, nombre)
         self.informar(errores)
+
+
+class PruebasHalladasEnLaCorridaLarga(unittest.TestCase):
+    """Casos que encontró una corrida de 20.000 manifiestos y no la de 1.200: quedan fijos para no depender del azar."""
+
+    def revertir(self, id_, estado):
+        env = EntornoVigilado(tempfile.mkdtemp())
+        escritos = []
+        original = env.reg_set
+        env.reg_set = lambda *a: escritos.append(a) or original(*a)
+        nucleo.POR_ID[id_].revertir(env, estado)
+        return env, escritos
+
+    def test_el_tipo_de_inicio_de_un_servicio_debe_ser_un_entero(self):
+        cambio = next(c for c in CATALOGO if isinstance(c, nucleo.CambioServicios))
+        for start in (True, False, 4.0, "4", None, 5, -1):
+            _env, escritos = self.revertir(cambio.id, {"servicios": [
+                {"nombre": cambio.servicios[0], "start": start, "corriendo": False}]})
+            self.assertEqual(escritos, [], repr(start))
+
+    def test_el_tipo_de_registro_debe_ser_un_entero(self):
+        cambio = nucleo.POR_ID["reg_gaming"]
+        hive, path, name = cambio.valores[0][:3]
+        for tipo in (4.0, True, "4"):
+            _env, escritos = self.revertir("reg_gaming", {"valores": [
+                {"hive": hive, "path": path, "name": name, "existe": True, "tipo": tipo, "valor": 0}]})
+            self.assertEqual(escritos, [], repr(tipo))
+
+    def test_los_efectos_de_interfaz_solo_aceptan_enteros(self):
+        clave = nucleo.SPI_AJUSTES[0][0]
+        for valor in (True, 1.0, "1", 3):
+            env = EntornoVigilado(tempfile.mkdtemp())
+            llamadas = []
+            env.spi_set = lambda *a: llamadas.append(a) or True
+            nucleo.POR_ID["anim_ui"].revertir(env, {"spi": [{"clave": clave, "valor": valor}]})
+            self.assertEqual(llamadas, [], repr(valor))
+
+    def test_ninguna_validacion_acepta_un_salto_de_linea_al_final(self):
+        casos = [(nucleo._RE_GUID, "381b4222-f694-41f0-9685-ff5bb260df2e"), (nucleo._RE_SESION, "20260101_000000"),
+                 (nucleo._RE_NOMBRE, "Spooler"), (nucleo._RE_APPX, "Microsoft.BingNews_1"), (nucleo._RE_COLOR, "0 0 0"),
+                 (nucleo._RE_RUTA_FONDO, "C:" + chr(92) + "a.jpg"), (instalador.RE_ID_WINGET, "Valve.Steam")]
+        for rx, bueno in casos:
+            self.assertIsNotNone(rx.match(bueno), bueno)
+            self.assertIsNone(rx.match(bueno + "\n"), repr(bueno))
+        self.assertFalse(instalador.id_valido("Valve.Steam\n"))
 
 
 class PruebasGuardarManifiesto(unittest.TestCase):
